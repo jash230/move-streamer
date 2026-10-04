@@ -2,17 +2,76 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- data-static tags are what crawlers see without JS; main.tsx swaps them for per-route tags. -->
+    <title data-static>Cucuflix: Watch Movies &amp; TV Shows Online</title>
+    <meta data-static name="description" content="Cucuflix is a free site to browse and watch movies and TV shows, including Israeli TV, with trending, popular and top rated picks." />
+    <link data-static rel="canonical" href="https://cucuflix.online/" />
+    <meta data-static name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="application-name" content="Cucuflix" />
+    <meta name="apple-mobile-web-app-title" content="Cucuflix" />
     <meta name="theme-color" content="#000000" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:site_name" content="Cucuflix" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://cucuflix.online/" />
+    <meta property="og:title" content="Cucuflix: Watch Movies &amp; TV Shows Online" />
+    <meta property="og:description" content="Browse and watch movies and TV shows, including Israeli TV." />
+    <meta property="og:image" content="https://cucuflix.online/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Cucuflix" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cucuflix" />
+    <meta name="twitter:description" content="Browse and watch movies and TV shows, including Israeli TV." />
+    <meta name="twitter:image" content="https://cucuflix.online/og-image.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://cucuflix.online/#website",
+            "name": "Cucuflix",
+            "alternateName": ["CucuFlix", "cucuflix.online"],
+            "url": "https://cucuflix.online/",
+            "publisher": { "@id": "https://cucuflix.online/#org" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://cucuflix.online/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://cucuflix.online/#org",
+            "name": "Cucuflix",
+            "url": "https://cucuflix.online/",
+            "logo": "https://cucuflix.online/icon-512.png"
+          }
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Karantina:wght@400;700&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Rubik:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="preconnect" href="https://image.tmdb.org" />
-    <title>Cucuflix</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Replaced by the app on load; gives non-JS crawlers the brand and main links. -->
+      <header>
+        <h1>Cucuflix</h1>
+        <p>Watch movies and TV shows online: trending, popular, top rated and Israeli TV.</p>
+        <nav><a href="/movies">Movies</a> <a href="/tv">TV Shows</a> <a href="/israel">Israeli TV</a></nav>
+      </header>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

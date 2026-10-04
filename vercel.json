@@ -1,5 +1,26 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.cucuflix.online" }],
+      "destination": "https://cucuflix.online/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "cucuflix.vercel.app" }],
+      "destination": "https://cucuflix.online/:path*",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/(movies|tv|israel|search)", "destination": "/index.html" },
+    { "source": "/(movie|tv)/:id(\\d+)", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/search", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, follow" }] }
+  ]
 }

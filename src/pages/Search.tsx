@@ -2,6 +2,7 @@ import { SearchX } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { search } from '../api'
 import Card, { CardSkeleton } from '../components/Card'
+import Seo from '../components/Seo'
 import { useAsync } from '../useAsync'
 
 export default function Search() {
@@ -10,6 +11,7 @@ export default function Search() {
   const { data, error, loading } = useAsync(() => search(q), [q])
   return (
     <div className="page">
+      <Seo title={`Search: ${q}`} noindex />
       <h1 className="page-title">Results for “{q}”</h1>
       {error && <p className="error" role="alert">Search failed: {error}</p>}
       {data?.length === 0 && (

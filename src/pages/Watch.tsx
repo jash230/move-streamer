@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getDetails, getEpisodes, img, isEndedMessage, sameSite, SERVERS, type MediaType, type Season } from '../api'
 import ServerPicker, { TryNextServer } from '../components/ServerPicker'
 import { SourcePicker, TorrentNotice, TorrentVideo, useTorrentStreams } from '../components/Torrent'
+import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
 import { useAsync } from '../useAsync'
 
@@ -79,11 +80,6 @@ export default function Watch({ type }: { type: MediaType }) {
     setSeason(item?.seasons?.[0]?.season_number ?? 1)
   }, [item])
 
-  useEffect(() => {
-    if (item) document.title = `${item.title} · Cucuflix`
-    return () => { document.title = 'Cucuflix' }
-  }, [item])
-
   const pickServer = (sid: string) => {
     setServerId(sid)
     try { localStorage.setItem(SERVER_KEY, sid) } catch { /* ignore */ }
@@ -113,6 +109,7 @@ export default function Watch({ type }: { type: MediaType }) {
 
   return (
     <>
+      <Seo title={item.title} description={item.overview ? item.overview.slice(0, 155) : undefined} path={`/${type}/${id}`} />
       {backdrop && <div className="watch-backdrop" style={{ backgroundImage: `url(${backdrop})` }} aria-hidden="true" />}
       <div className="watch">
         <button className="back" onClick={() => navigate(-1)}><ArrowLeft size={18} /> Back</button>

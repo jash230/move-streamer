@@ -1,4 +1,4 @@
-# StreamBox
+# Cucuflix
 
 A React + Vite site for browsing movies and TV shows (including Israeli series) with embedded players.
 

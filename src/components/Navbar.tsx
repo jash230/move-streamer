@@ -29,9 +29,9 @@ export default function Navbar() {
 
   return (
     <header className={scrolled || pathname !== '/' ? 'nav solid' : 'nav'}>
-      <Link to="/" className="logo" aria-label="StreamBox home">
+      <Link to="/" className="logo" aria-label="Cucuflix home">
         <span className="logo-mark" aria-hidden="true" />
-        <span>Stream<span className="logo-accent">Box</span></span>
+        <span>Cucu<span className="logo-accent">flix</span></span>
       </Link>
       <nav aria-label="Primary">
         {LINKS.map(({ to, label, icon: Icon, end }) => (

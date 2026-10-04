@@ -1,10 +1,28 @@
-import { ArrowLeft, Clock, Play, ShieldCheck, Star, TriangleAlert } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowLeft, Clock, Play, Star, TriangleAlert } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { getDetails, getEpisodes, img, SERVERS, type MediaType, type Season } from '../api'
+import { getDetails, getEpisodes, img, isEndedMessage, sameSite, SERVERS, type MediaType, type Season } from '../api'
+import ServerPicker, { TryNextServer } from '../components/ServerPicker'
+import { SourcePicker, TorrentNotice, TorrentVideo, useTorrentStreams } from '../components/Torrent'
+import UpNext from '../components/UpNext'
 import { useAsync } from '../useAsync'
 
 const SERVER_KEY = 'streambox.server'
+const AUTONEXT_KEY = 'streambox.autonext'
+
+function loadAutoNext() {
+  try { return localStorage.getItem(AUTONEXT_KEY) !== '0' } catch { return true }
+}
+
+// The episode after the current one, rolling into the next season when this one is done.
+function nextEpisode(seasons: Season[] | undefined, season: number, episode: number) {
+  if (!seasons) return undefined
+  const i = seasons.findIndex((s) => s.season_number === season)
+  if (i === -1) return undefined
+  if (episode < seasons[i].episode_count) return { season, episode: episode + 1 }
+  const following = seasons[i + 1]
+  return following ? { season: following.season_number, episode: 1 } : undefined
+}
 
 function loadServer() {
   try {
@@ -24,6 +42,37 @@ export default function Watch({ type }: { type: MediaType }) {
   const [playing, setPlaying] = useState(params.get('play') === '1')
   const [serverId, setServerId] = useState(loadServer)
   const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0]
+  const torrent = useTorrentStreams(item?.imdb_id, type, season, episode, Boolean(server.torrent && item))
+  const [autoNext, setAutoNext] = useState(loadAutoNext)
+  const [ended, setEnded] = useState(false)
+  const next = type === 'tv' ? nextEpisode(item?.seasons, season, episode) : undefined
+
+  useEffect(() => setEnded(false), [season, episode, serverId])
+
+  // Embedded players only tell us they finished through postMessage.
+  useEffect(() => {
+    if (!playing || server.torrent || type !== 'tv') return
+    const src = server.url(type, id, season, episode)
+    const onMessage = (e: MessageEvent) => {
+      if (sameSite(e.origin, src) && isEndedMessage(e.data)) setEnded(true)
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [playing, server, type, id, season, episode])
+
+  const playNext = useCallback(() => {
+    if (!next) return
+    setSeason(next.season)
+    setEpisode(next.episode)
+    setPlaying(true)
+  }, [next?.season, next?.episode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleAutoNext = () => {
+    setAutoNext((on) => {
+      try { localStorage.setItem(AUTONEXT_KEY, on ? '0' : '1') } catch { /* ignore */ }
+      return !on
+    })
+  }
 
   useEffect(() => {
     setEpisode(1)
@@ -31,8 +80,8 @@ export default function Watch({ type }: { type: MediaType }) {
   }, [item])
 
   useEffect(() => {
-    if (item) document.title = `${item.title} · StreamBox`
-    return () => { document.title = 'StreamBox' }
+    if (item) document.title = `${item.title} · Cucuflix`
+    return () => { document.title = 'Cucuflix' }
   }, [item])
 
   const pickServer = (sid: string) => {
@@ -69,7 +118,9 @@ export default function Watch({ type }: { type: MediaType }) {
         <button className="back" onClick={() => navigate(-1)}><ArrowLeft size={18} /> Back</button>
 
         <div className="player" style={backdrop ? { backgroundImage: `url(${backdrop})` } : undefined}>
-          {playing ? (
+          {playing && server.torrent ? (
+            <TorrentVideo torrent={torrent} title={item.title} onEnded={() => setEnded(true)} />
+          ) : playing ? (
             <iframe
               key={`${server.id}-${season}-${episode}`}
               src={server.url(type, id, season, episode)}
@@ -86,25 +137,23 @@ export default function Watch({ type }: { type: MediaType }) {
               </span>
             </button>
           )}
+          {ended && next && (
+            <UpNext
+              key={`${season}-${episode}`}
+              label={next.season === season ? `Episode ${next.episode}` : `Season ${next.season}, episode 1`}
+              autoplay={autoNext}
+              onPlay={playNext}
+              onCancel={() => setEnded(false)}
+            />
+          )}
         </div>
 
-        <div className="servers" role="radiogroup" aria-label="Streaming server">
-          <span className="servers-label">Server</span>
-          {SERVERS.map((s) => (
-            <button
-              key={s.id}
-              role="radio"
-              aria-checked={s.id === server.id}
-              className={s.id === server.id ? 'server active' : 'server'}
-              onClick={() => pickServer(s.id)}
-              title={s.note}
-            >
-              {s.id === 'videasy' ? <ShieldCheck size={16} aria-hidden="true" /> : <TriangleAlert size={16} aria-hidden="true" />}
-              <span>{s.name}</span>
-              <small>{s.note}</small>
-            </button>
-          ))}
+        <div className="pickers">
+          <ServerPicker value={server} onChange={pickServer} />
+          {server.torrent && <SourcePicker torrent={torrent} onPick={() => setPlaying(true)} />}
+          <TryNextServer value={server} onChange={pickServer} />
         </div>
+        {server.torrent && <TorrentNotice torrent={torrent} isTv={type === 'tv'} />}
 
         <div className="info">
           {poster && <img className="info-poster" src={poster} alt="" width={160} height={240} />}
@@ -131,6 +180,8 @@ export default function Watch({ type }: { type: MediaType }) {
             seasons={item.seasons}
             season={season}
             episode={episode}
+            autoNext={autoNext}
+            onToggleAutoNext={toggleAutoNext}
             onSeason={(s) => { setSeason(s); setEpisode(1) }}
             onEpisode={(e) => { setEpisode(e); setPlaying(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
           />
@@ -145,6 +196,8 @@ function Episodes(props: {
   seasons: Season[]
   season: number
   episode: number
+  autoNext: boolean
+  onToggleAutoNext: () => void
   onSeason: (s: number) => void
   onEpisode: (e: number) => void
 }) {
@@ -153,12 +206,18 @@ function Episodes(props: {
     <section className="episodes" aria-label="Episodes">
       <div className="episodes-head">
         <h2>Episodes</h2>
-        <label className="sr-only" htmlFor="season">Season</label>
-        <select id="season" value={props.season} onChange={(e) => props.onSeason(Number(e.target.value))}>
-          {props.seasons.map((s) => (
-            <option key={s.season_number} value={s.season_number}>{s.name} ({s.episode_count})</option>
-          ))}
-        </select>
+        <div className="episodes-controls">
+          <button className="switch" role="switch" aria-checked={props.autoNext} onClick={props.onToggleAutoNext}>
+            <span className="switch-track" aria-hidden="true"><span className="switch-thumb" /></span>
+            Autoplay next episode
+          </button>
+          <label className="sr-only" htmlFor="season">Season</label>
+          <select id="season" value={props.season} onChange={(e) => props.onSeason(Number(e.target.value))}>
+            {props.seasons.map((s) => (
+              <option key={s.season_number} value={s.season_number}>{s.name} ({s.episode_count})</option>
+            ))}
+          </select>
+        </div>
       </div>
       <ul className="ep-list" aria-busy={loading}>
         {loading && Array.from({ length: 4 }, (_, i) => <li key={i} className="ep skeleton ep-skel" />)}

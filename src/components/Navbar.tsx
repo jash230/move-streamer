@@ -30,7 +30,10 @@ export default function Navbar() {
   return (
     <header className={scrolled || pathname !== '/' ? 'nav solid' : 'nav'}>
       <Link to="/" className="logo" aria-label="Cucuflix home">
-        <span className="logo-mark" aria-hidden="true" />
+        <svg className="logo-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M23.66 22.43A10 10 0 1 1 23.66 9.57" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+          <path d="M12.5 11.2v9.6l9-4.8z" fill="#fff" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
         <span>Cucu<span className="logo-accent">flix</span></span>
       </Link>
       <nav aria-label="Primary">

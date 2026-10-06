@@ -4,7 +4,7 @@ import Dropdown from './Dropdown'
 
 // Shown as numbers, not provider names; numbering follows SERVERS (most reliable first).
 const GROUPS = [{ label: 'Servers', items: SERVERS }]
-const serverLabel = (s: Server) => `Server ${SERVERS.indexOf(s) + 1}`
+export const serverLabel = (s: Server) => `Server ${SERVERS.indexOf(s) + 1}`
 
 export default function ServerPicker({ value, onChange }: { value: Server; onChange: (id: string) => void }) {
   return (

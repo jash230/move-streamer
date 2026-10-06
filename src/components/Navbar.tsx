@@ -1,6 +1,7 @@
 import { Clapperboard, Film, Home, Loader2, MessageSquareHeart, Search, Star, Tv } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { track } from '../analytics'
 import { img, search, warmSearch, type Media } from '../api'
 import ReviewDialog from './ReviewDialog'
 
@@ -70,7 +71,10 @@ export default function Navbar() {
     e.preventDefault()
     setOpen(false)
     const pick = results[active]
-    if (pick) navigate(`/${pick.media_type}/${pick.id}`)
+    if (pick) {
+      track('search', { q: term.trim(), results: results.length, picked: true })
+      navigate(`/${pick.media_type}/${pick.id}`)
+    }
     else if (term) navigate(`/search?q=${encodeURIComponent(term)}`)
   }
 

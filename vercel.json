@@ -7,11 +7,15 @@
       "destination": "/index.html"
     },
     {
-      "source": "/(movies|tv|israel|search|admin/reviews)",
+      "source": "/(movies|tv|israel|search)",
       "destination": "/index.html"
     },
     {
       "source": "/(movie|tv)/:id(\\d+)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/:path*",
       "destination": "/index.html"
     }
   ],
@@ -24,6 +28,21 @@
           "value": "noindex, follow"
         }
       ]
+    },
+    {
+      "source": "/admin/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 3 * * *"
     }
   ]
 }

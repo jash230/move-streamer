@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react'
 import { KeyRound } from 'lucide-react'
 import { useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
@@ -48,6 +49,7 @@ export default function App() {
         <span>Cucuflix</span>
         <span className="muted">Metadata by TMDB. Video is served by third-party players.</span>
       </footer>
+      <Analytics />
     </BrowserRouter>
   )
 }

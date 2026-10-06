@@ -1,8 +1,9 @@
 import { ArrowLeft, Clock, Play, Star, TriangleAlert } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
-import { getDetails, getEpisodes, img, playbackLeft, sameSite, SERVERS, type MediaType, type Season } from '../api'
+import { getDetails, getEpisodes, img, playbackProgress, sameSite, SERVERS, type MediaType, type Playback, type Season } from '../api'
+import { formatTime, getProgress, isFinished, MIN_WATCHED, recordPlayback } from '../progress'
 import ServerPicker, { TryNextServer } from '../components/ServerPicker'
 import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
@@ -41,8 +42,9 @@ export default function Watch({ type }: { type: MediaType }) {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { data: item, error, loading } = useAsync(() => getDetails(type, id), [type, id])
-  const [season, setSeason] = useState(1)
-  const [episode, setEpisode] = useState(1)
+  // Starts at the saved episode so the player doesn't load episode 1 first.
+  const [season, setSeason] = useState(() => (type === 'tv' && getProgress(type, id)?.season) || 1)
+  const [episode, setEpisode] = useState(() => (type === 'tv' && getProgress(type, id)?.episode) || 1)
   const [playing, setPlaying] = useState(params.get('play') === '1')
   const [serverId, setServerId] = useState(loadServer)
   const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0]
@@ -56,6 +58,18 @@ export default function Watch({ type }: { type: MediaType }) {
   const switchCheck = useRef<ReturnType<typeof setTimeout>>(undefined)
   const frame = frameAt ?? { season, episode }
   const next = type === 'tv' ? nextEpisode(item?.seasons, season, episode) : undefined
+  // Read by the player listener when it saves progress, without re-subscribing it.
+  const saveFor = useRef({ item, next })
+  useEffect(() => { saveFor.current = { item, next } })
+
+  // Where the player opens the episode or movie. Only read when the player (re)loads, so saving
+  // progress while it plays doesn't reload it.
+  const resumeAt = useMemo(() => {
+    const saved = getProgress(type, id)
+    if (!saved || saved.position < MIN_WATCHED) return undefined
+    if (type === 'tv' && (saved.season !== frame.season || saved.episode !== frame.episode)) return undefined
+    return saved.position
+  }, [type, id, frame.season, frame.episode, server.id, playing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => setEnded(false), [season, episode, serverId])
 
@@ -80,10 +94,22 @@ export default function Watch({ type }: { type: MediaType }) {
     const want = { id, season: type === 'tv' ? season : undefined, episode: type === 'tv' ? episode : undefined }
     let seenPlaying = false
     let shown = false
+    // Progress is saved every 10s, when the page is hidden or left, and as the episode finishes.
+    let last: Playback | undefined
+    let savedAt = 0
+    let finished = false
+    const save = (p: Playback) => {
+      const { item, next } = saveFor.current
+      if (!item || finished) return
+      finished = isFinished(p)
+      const title = { id, type, title: item.title, poster_path: item.poster_path, backdrop_path: item.backdrop_path, date: item.date }
+      recordPlayback(title, want, p, next)
+    }
     const onMessage = (e: MessageEvent) => {
       if (!sameSite(e.origin, src)) return
-      const left = playbackLeft(e.data, want)
-      if (left === null) return
+      const p = playbackProgress(e.data, want)
+      if (!p) return
+      const left = p.ended ? 0 : p.duration > 0 ? Math.max(0, p.duration - p.watched) : Infinity
       clearTimeout(switchCheck.current)
       if (left > UP_NEXT_AT) seenPlaying = true
       else if (seenPlaying && !shown) {
@@ -91,9 +117,24 @@ export default function Watch({ type }: { type: MediaType }) {
         setUpNextIn(Math.max(3, Math.round(left)))
         setEnded(true)
       }
+      if (!seenPlaying) return
+      last = p
+      if (isFinished(p) || Date.now() - savedAt >= 10_000) {
+        savedAt = Date.now()
+        save(p)
+      }
     }
+    const flush = () => { if (last) save(last) }
+    const onHidden = () => { if (document.visibilityState === 'hidden') flush() }
     window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onHidden)
+    return () => {
+      window.removeEventListener('message', onMessage)
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onHidden)
+      flush()
+    }
   }, [playing, server, type, id, season, episode])
 
   const playNext = useCallback(() => {
@@ -127,8 +168,12 @@ export default function Watch({ type }: { type: MediaType }) {
     })
   }
 
+  // Shows open at the episode you stopped at, if it still exists.
   useEffect(() => {
-    pickEpisode(item?.seasons?.[0]?.season_number ?? 1, 1)
+    const saved = type === 'tv' ? getProgress(type, id) : undefined
+    const at = item?.seasons?.find((s) => s.season_number === saved?.season)
+    if (saved?.episode && at && saved.episode <= at.episode_count) pickEpisode(at.season_number, saved.episode)
+    else pickEpisode(item?.seasons?.[0]?.season_number ?? 1, 1)
   }, [item]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickServer = (sid: string, reason: 'picker' | 'try_next' = 'picker') => {
@@ -172,7 +217,7 @@ export default function Watch({ type }: { type: MediaType }) {
             <iframe
               ref={frameRef}
               key={`${server.id}-${frame.season}-${frame.episode}`}
-              src={server.url(type, id, frame.season, frame.episode)}
+              src={server.url(type, id, frame.season, frame.episode, resumeAt)}
               // `*`, not the default 'src': some servers redirect to another domain (vidsrc-embed.ru →
               // vidsrc.sh), which would otherwise lose fullscreen and autoplay.
               allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
@@ -184,7 +229,9 @@ export default function Watch({ type }: { type: MediaType }) {
             <button className="play" onClick={() => setPlaying(true)}>
               <span className="play-circle"><Play size={34} fill="currentColor" /></span>
               <span className="play-label">
-                {type === 'tv' ? `Play S${season} · E${episode}` : 'Play'}
+                {type === 'tv'
+                  ? `${resumeAt ? 'Resume' : 'Play'} S${season} · E${episode}`
+                  : resumeAt ? `Resume from ${formatTime(resumeAt)}` : 'Play'}
               </span>
             </button>
           )}

@@ -1,4 +1,5 @@
 import { discoverByCountry, getFamousTv, getList, getTrending } from '../api'
+import ContinueWatching from '../components/ContinueWatching'
 import Hero from '../components/Hero'
 import Row from '../components/Row'
 import Seo from '../components/Seo'
@@ -13,6 +14,7 @@ export default function Home() {
       <h1 className="sr-only">Cucuflix: watch movies and TV shows online</h1>
       <Hero load={getTrending} />
       <div className="rows">
+        <ContinueWatching />
         <Row title="Top 10 this week" load={getTrending} ranked />
         <Row title="Popular Movies" load={() => getList('/movie/popular', 'movie')} />
         <Row title="Popular TV Shows" load={() => getFamousTv('popularity.desc')} />

@@ -181,7 +181,7 @@ main { position: relative; min-height: 70dvh; }
 .row .error { padding: 0 var(--gutter); }
 .row-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px var(--gutter) 12px; scroll-snap-type: x proximity; scroll-padding: 0 var(--gutter); scrollbar-width: none; }
 .row-scroll::-webkit-scrollbar { display: none; }
-.row-scroll > .card { flex: 0 0 clamp(132px, 14vw, 190px); scroll-snap-align: start; }
+.row-scroll > .card, .row-scroll > .card-wrap { flex: 0 0 clamp(132px, 14vw, 190px); scroll-snap-align: start; }
 .row-ranked .row-scroll { gap: 8px; }
 .rank { flex: 0 0 auto; display: flex; align-items: flex-end; scroll-snap-align: start; }
 .rank > .card { flex: 0 0 clamp(120px, 12vw, 168px); }
@@ -213,6 +213,15 @@ main { position: relative; min-height: 70dvh; }
 .card-meta { display: flex; flex-direction: column; padding: 10px 2px 0; }
 .card-title { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-sub { display: flex; gap: 8px; font-size: 0.8rem; color: var(--text-muted); }
+
+/* Continue Watching */
+.poster-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(255 255 255 / 0.25); }
+.poster-progress > span { display: block; height: 100%; background: var(--accent); }
+.card-wrap { position: relative; min-width: 0; }
+.card-remove { position: absolute; top: 6px; right: 6px; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.72); backdrop-filter: blur(6px); color: #fff; cursor: pointer; opacity: 0; transition: opacity var(--dur) var(--ease), background var(--dur) var(--ease); }
+.card-remove:hover { background: rgb(0 0 0 / 0.9); }
+.card-wrap:hover .card-remove, .card-remove:focus-visible, .card-wrap:focus-within .card-remove { opacity: 1; }
+@media (hover: none) { .card-remove { opacity: 1; } }
 
 /* ---------- Skeletons / empty ---------- */
 .skeleton { background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }

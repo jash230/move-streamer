@@ -200,7 +200,8 @@ export interface Server {
   id: string
   name: string
   popups: boolean
-  url: (type: MediaType, id: string, season: number, episode: number) => string
+  // `start` is where to resume, in seconds; servers without a start-time parameter ignore it.
+  url: (type: MediaType, id: string, season: number, episode: number, start?: number) => string
   // Switches episodes inside the running player on a postMessage, for players that make every
   // fresh load wait for a click.
   switchEpisode?: (frame: Window, season: number, episode: number) => void
@@ -241,17 +242,20 @@ export const SERVERS: Server[] = [
     id: 'vidlink',
     name: 'VidLink',
     popups: true,
-    url: (type, id, s, e) =>
-      type === 'movie'
+    url: (type, id, s, e, start) =>
+      (type === 'movie'
         ? `https://vidlink.pro/movie/${id}?primaryColor=E11D48&autoplay=true`
-        : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true&autoplay=true`,
+        : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true&autoplay=true`) +
+      (start ? `&startAt=${Math.floor(start)}` : ''),
   },
 ]
 
 export interface PlaybackTarget { id: string; season?: number; episode?: number }
 
-const left = (watched: unknown, duration: unknown) =>
-  typeof watched === 'number' && typeof duration === 'number' && duration > 60 ? Math.max(0, duration - watched) : null
+export interface Playback { watched: number; duration: number; ended?: boolean }
+
+const measured = (watched: unknown, duration: unknown): Playback | null =>
+  typeof watched === 'number' && typeof duration === 'number' && duration > 60 ? { watched, duration } : null
 
 // Embed players report playback through postMessage, each in its own shape:
 // - VidSrc: { type: 'PLAYER_EVENT', data: { player_info: { tmdb, season, episode }, player_status: 'completed', player_progress, player_duration } }
@@ -259,9 +263,9 @@ const left = (watched: unknown, duration: unknown) =>
 //   titles, each with show_progress['s1e2'].progress (TV) or progress (movies) as { watched, duration }.
 //   That's the player's whole watch history, so only the entry for the title and episode on screen counts.
 // - Others: { data: { event: 'ended' } } or { currentTime, duration }.
-// Returns the seconds left in the title on screen (0 once it ended, Infinity while playing with no
-// known length), or null when the message isn't about it.
-export function playbackLeft(raw: unknown, want: PlaybackTarget): number | null {
+// Returns how far along the title on screen is (duration 0 while playing with no known length), or null
+// when the message isn't about it.
+export function playbackProgress(raw: unknown, want: PlaybackTarget): Playback | null {
   let d = raw
   if (typeof d === 'string') {
     try { d = JSON.parse(d) } catch { return null }
@@ -276,18 +280,28 @@ export function playbackLeft(raw: unknown, want: PlaybackTarget): number | null 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const entry = entries.find((x: any) => String(x?.id) === want.id) as any
     const p = tv ? entry?.show_progress?.[`s${want.season}e${want.episode}`]?.progress : entry?.progress
-    return left(p?.watched, p?.duration)
+    return measured(p?.watched, p?.duration)
   }
 
   const info = m.data?.player_info
   if (info && (String(info.tmdb) !== want.id || (tv && (Number(info.season) !== want.season || Number(info.episode) !== want.episode)))) return null
   const status = m.data?.player_status
-  if (status === 'completed' || status === 'ended') return 0
-  if (typeof status === 'string') return left(m.data.player_progress, m.data.player_duration) ?? Infinity
+  const reported = measured(m.data?.player_progress, m.data?.player_duration)
+  if (status === 'completed' || status === 'ended') return { ...(reported ?? { watched: 0, duration: 0 }), ended: true }
+  if (typeof status === 'string') return reported ?? { watched: 0, duration: 0 }
 
   const event = m.data?.event ?? m.event
-  if (event === 'ended' || event === 'complete') return 0
-  return left(m.data?.currentTime ?? m.currentTime ?? m.timestamp, m.data?.duration ?? m.duration)
+  if (event === 'ended' || event === 'complete') return { watched: 0, duration: 0, ended: true }
+  return measured(m.data?.currentTime ?? m.currentTime ?? m.timestamp, m.data?.duration ?? m.duration)
+}
+
+// The seconds left in the title on screen (0 once it ended, Infinity while playing with no known
+// length), or null when the message isn't about it.
+export function playbackLeft(raw: unknown, want: PlaybackTarget): number | null {
+  const p = playbackProgress(raw, want)
+  if (!p) return null
+  if (p.ended) return 0
+  return p.duration > 0 ? Math.max(0, p.duration - p.watched) : Infinity
 }
 
 const baseDomain = (host: string) => host.split('.').slice(-2).join('.')

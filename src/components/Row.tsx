@@ -1,11 +1,21 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useRef } from 'react'
+import { useRef, type ReactNode } from 'react'
 import type { Media } from '../api'
 import { useAsync } from '../useAsync'
 import Card, { CardSkeleton } from './Card'
 
-export default function Row({ title, load, ranked }: { title: string; load: () => Promise<Media[]>; ranked?: boolean }) {
-  const { data, error, loading } = useAsync(load, [title])
+const noLoad = () => Promise.resolve([])
+
+// A row loads its titles with `load`, or shows ready `items` with their own cards from `card`.
+export default function Row({ title, load, ranked, items, card }: {
+  title: string
+  load?: () => Promise<Media[]>
+  ranked?: boolean
+  items?: Media[]
+  card?: (m: Media) => ReactNode
+}) {
+  const loaded = useAsync(load ?? noLoad, [title])
+  const { data, error, loading } = items ? { data: items, error: undefined, loading: false } : loaded
   const scroller = useRef<HTMLDivElement>(null)
   const scroll = (dir: number) => {
     const el = scroller.current
@@ -33,7 +43,7 @@ export default function Row({ title, load, ranked }: { title: string; load: () =
                 <Card item={m} rank={i + 1} />
               </div>
             ))
-          : data?.map((m) => <Card key={`${m.media_type}-${m.id}`} item={m} />)}
+          : data?.map((m) => card ? card(m) : <Card key={`${m.media_type}-${m.id}`} item={m} />)}
       </div>
     </section>
   )

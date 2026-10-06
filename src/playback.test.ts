@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { playbackLeft, type PlaybackTarget } from './api'
+import { playbackLeft, playbackProgress, type PlaybackTarget } from './api'
 
 // Seconds left, bucketed the way the tests read best.
 const playbackState = (raw: unknown, want: PlaybackTarget) => {
@@ -68,5 +68,24 @@ describe('playbackLeft', () => {
     expect(playbackState({ type: 'PLAYER_UI', visible: true }, ep)).toBeNull()
     expect(playbackState('not json', ep)).toBeNull()
     expect(playbackState({ type: 'MEDIA_DATA', data: {} }, ep)).toBeNull()
+  })
+})
+
+describe('playbackProgress', () => {
+  it('reports where the player is, for saving progress', () => {
+    expect(playbackProgress(vidsrc('playing', 1200, 3697), ep)).toEqual({ watched: 1200, duration: 3697 })
+    expect(playbackProgress({ type: 'MEDIA_DATA', data: [show(1399, { s1e1: 900 })] }, ep)).toEqual({ watched: 900, duration: 3697.1 })
+    expect(playbackProgress({ currentTime: 100, duration: 3000 }, ep)).toEqual({ watched: 100, duration: 3000 })
+  })
+
+  it('marks ends, and playing with no known length', () => {
+    expect(playbackProgress(vidsrc('completed', 3697, 3697), ep)).toEqual({ watched: 3697, duration: 3697, ended: true })
+    expect(playbackProgress({ data: { event: 'ended' } }, ep)).toMatchObject({ ended: true })
+    expect(playbackProgress(vidsrc('playing', 0, 0), ep)).toEqual({ watched: 0, duration: 0 })
+  })
+
+  it('ignores other titles and episodes', () => {
+    expect(playbackProgress(vidsrc('playing', 1200, 3697, { tmdb: '1399', season: 1, episode: 2 }), ep)).toBeNull()
+    expect(playbackProgress({ type: 'MEDIA_DATA', data: [show(42, { s1e1: 900 })] }, ep)).toBeNull()
   })
 })

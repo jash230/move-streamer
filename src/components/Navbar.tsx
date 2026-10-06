@@ -1,7 +1,8 @@
-import { Clapperboard, Film, Home, Loader2, Search, Star, Tv } from 'lucide-react'
+import { Clapperboard, Film, Home, Loader2, MessageSquareHeart, Search, Star, Tv } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { img, search, warmSearch, type Media } from '../api'
+import ReviewDialog from './ReviewDialog'
 
 const LINKS = [
   { to: '/', label: 'Home', icon: Home, end: true },
@@ -17,6 +18,7 @@ export default function Navbar() {
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
+  const [reviewing, setReviewing] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -171,6 +173,11 @@ export default function Navbar() {
           </div>
         )}
       </form>
+      <button type="button" className="nav-review" onClick={() => setReviewing(true)} aria-haspopup="dialog">
+        <MessageSquareHeart size={18} aria-hidden="true" />
+        <span>Review</span>
+      </button>
+      <ReviewDialog open={reviewing} onClose={() => setReviewing(false)} />
     </header>
   )
 }

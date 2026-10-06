@@ -7,7 +7,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/(movies|tv|israel|search)",
+      "source": "/(movies|tv|israel|search|admin/reviews)",
       "destination": "/index.html"
     },
     {

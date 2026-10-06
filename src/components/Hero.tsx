@@ -22,6 +22,13 @@ export default function Hero({ load }: { load: () => Promise<Media[]> }) {
   if (!item) return null
 
   return (
+    <>
+    {/* The featured image, blurred, lights the dark page behind it like a screen in a theater. */}
+    <div className="ambient" aria-hidden="true">
+      {items.map((m, n) => (
+        <img key={m.id} className={n === i ? 'active' : ''} src={img(m.backdrop_path, 'w300')} alt="" />
+      ))}
+    </div>
     <section className="hero" aria-label="Featured">
       {items.map((m, n) => (
         <img
@@ -34,11 +41,11 @@ export default function Hero({ load }: { load: () => Promise<Media[]> }) {
       ))}
       <div className="hero-shade" />
       <div className="hero-content" key={item.id}>
-        <span className="eyebrow">{item.media_type === 'tv' ? 'Series' : 'Movie'} · Trending</span>
         <h2>{item.title}</h2>
         <p className="hero-meta">
           {item.vote_average > 0 && <><Star size={14} fill="currentColor" className="star" /> {item.vote_average.toFixed(1)}</>}
           {item.date && <span>{item.date.slice(0, 4)}</span>}
+          <span className="hero-kind">{item.media_type === 'tv' ? 'Series' : 'Movie'}</span>
         </p>
         <p className="hero-overview">{item.overview}</p>
         <div className="hero-actions">
@@ -65,5 +72,6 @@ export default function Hero({ load }: { load: () => Promise<Media[]> }) {
         </div>
       )}
     </section>
+    </>
   )
 }

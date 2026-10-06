@@ -9,6 +9,7 @@ import Home from './pages/Home'
 import Israel from './pages/Israel'
 import Search from './pages/Search'
 import Watch from './pages/Watch'
+import AdminReviews from './pages/AdminReviews'
 import NotFound from './pages/NotFound'
 
 function ScrollToTop() {
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/movie/:id" element={<Watch type="movie" />} />
           <Route path="/tv/:id" element={<Watch type="tv" />} />
+          <Route path="/admin/reviews" element={<AdminReviews />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

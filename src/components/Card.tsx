@@ -2,11 +2,11 @@ import { Play, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { img, type Media } from '../api'
 
-export default function Card({ item }: { item: Media }) {
+export default function Card({ item, rank }: { item: Media; rank?: number }) {
   const poster = img(item.poster_path)
   const year = item.date.slice(0, 4)
   return (
-    <Link to={`/${item.media_type}/${item.id}`} className="card" aria-label={`${item.title}${year ? ` (${year})` : ''}`}>
+    <Link to={`/${item.media_type}/${item.id}`} className="card" aria-label={`${rank ? `Number ${rank}: ` : ''}${item.title}${year ? ` (${year})` : ''}`}>
       <div className="poster">
         {poster ? <img src={poster} alt="" loading="lazy" width={342} height={513} /> : <span className="noposter">{item.title}</span>}
         <div className="poster-overlay" aria-hidden="true">
@@ -20,7 +20,10 @@ export default function Card({ item }: { item: Media }) {
       </div>
       <div className="card-meta">
         <span className="card-title">{item.title}</span>
-        <span className="card-sub">{item.media_type === 'tv' ? 'Series' : 'Movie'}{year && ` · ${year}`}</span>
+        <span className="card-sub">
+          {year && <span>{year}</span>}
+          <span>{item.media_type === 'tv' ? 'Series' : 'Movie'}</span>
+        </span>
       </div>
     </Link>
   )

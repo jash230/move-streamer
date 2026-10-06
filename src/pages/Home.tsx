@@ -13,7 +13,7 @@ export default function Home() {
       <h1 className="sr-only">Cucuflix: watch movies and TV shows online</h1>
       <Hero load={getTrending} />
       <div className="rows">
-        <Row title="Trending This Week" load={getTrending} />
+        <Row title="Top 10 this week" load={getTrending} ranked />
         <Row title="Popular Movies" load={() => getList('/movie/popular', 'movie')} />
         <Row title="Popular TV Shows" load={() => getFamousTv('popularity.desc')} />
         <Row title="All-Time Favorite Shows" load={() => getFamousTv('vote_count.desc')} />

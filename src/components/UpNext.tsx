@@ -1,16 +1,15 @@
 import { Play, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-const COUNTDOWN = 8
-
-// Shown over the player when an episode ends. With autoplay on it counts down, otherwise it waits.
-export default function UpNext({ label, autoplay, onPlay, onCancel }: {
+// Shown over the player as an episode ends. With autoplay on it counts down `seconds`, otherwise it waits.
+export default function UpNext({ label, autoplay, seconds, onPlay, onCancel }: {
   label: string
   autoplay: boolean
+  seconds: number
   onPlay: () => void
   onCancel: () => void
 }) {
-  const [left, setLeft] = useState(COUNTDOWN)
+  const [left, setLeft] = useState(seconds)
 
   useEffect(() => {
     if (!autoplay) return
@@ -29,7 +28,7 @@ export default function UpNext({ label, autoplay, onPlay, onCancel }: {
         <button className="upnext-play" onClick={onPlay}>
           {autoplay && (
             <svg className="upnext-ring" viewBox="0 0 36 36" aria-hidden="true">
-              <circle cx="18" cy="18" r="16" pathLength={COUNTDOWN} style={{ strokeDashoffset: COUNTDOWN - left }} />
+              <circle cx="18" cy="18" r="16" pathLength={seconds} style={{ strokeDasharray: seconds, strokeDashoffset: seconds - left }} />
             </svg>
           )}
           <Play size={16} fill="currentColor" aria-hidden="true" />

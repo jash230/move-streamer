@@ -2,7 +2,7 @@ import { ArrowLeft, Clock, Play, Star, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
-import { getDetails, getEpisodes, img, playbackState, sameSite, SERVERS, type MediaType, type Season } from '../api'
+import { getDetails, getEpisodes, img, playbackLeft, sameSite, SERVERS, type MediaType, type Season } from '../api'
 import ServerPicker, { TryNextServer } from '../components/ServerPicker'
 import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
@@ -10,6 +10,8 @@ import { useAsync } from '../useAsync'
 
 // v2: the old default (Videasy) stopped working, so saved choices from before are reset.
 const SERVER_KEY = 'streambox.server.v2'
+// Seconds before the end of an episode that the Up next countdown starts.
+const UP_NEXT_AT = 10
 const AUTONEXT_KEY = 'streambox.autonext'
 
 function loadAutoNext() {
@@ -45,7 +47,9 @@ export default function Watch({ type }: { type: MediaType }) {
   const [serverId, setServerId] = useState(loadServer)
   const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0]
   const [autoNext, setAutoNext] = useState(loadAutoNext)
+  // Up next shows this many seconds before the end, so the next episode starts as this one finishes.
   const [ended, setEnded] = useState(false)
+  const [upNextIn, setUpNextIn] = useState(UP_NEXT_AT)
   // The episode the player iframe was loaded with, while auto-next has switched episodes inside it.
   const [frameAt, setFrameAt] = useState<{ season: number; episode: number } | null>(null)
   const frameRef = useRef<HTMLIFrameElement>(null)
@@ -67,20 +71,26 @@ export default function Watch({ type }: { type: MediaType }) {
     if (ended && title) track('play_finish', playProps)
   }, [ended]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Embedded players only tell us they finished through postMessage (movies too, for play_finish).
-  // Players remember progress, so a rewatched episode can report "finished" before it starts; an end
-  // only counts once this episode has been seen playing.
+  // Embedded players only tell us how far along they are through postMessage (movies too, for
+  // play_finish). Players remember progress, so a rewatched episode can report "almost done" before it
+  // starts; the end only counts once this episode has been seen playing, and only once (Cancel sticks).
   useEffect(() => {
     if (!playing) return
     const src = server.url(type, id, season, episode)
     const want = { id, season: type === 'tv' ? season : undefined, episode: type === 'tv' ? episode : undefined }
     let seenPlaying = false
+    let shown = false
     const onMessage = (e: MessageEvent) => {
       if (!sameSite(e.origin, src)) return
-      const state = playbackState(e.data, want)
-      if (state) clearTimeout(switchCheck.current)
-      if (state === 'playing') seenPlaying = true
-      else if (state === 'ended' && seenPlaying) setEnded(true)
+      const left = playbackLeft(e.data, want)
+      if (left === null) return
+      clearTimeout(switchCheck.current)
+      if (left > UP_NEXT_AT) seenPlaying = true
+      else if (seenPlaying && !shown) {
+        shown = true
+        setUpNextIn(Math.max(3, Math.round(left)))
+        setEnded(true)
+      }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
@@ -183,6 +193,7 @@ export default function Watch({ type }: { type: MediaType }) {
               key={`${season}-${episode}`}
               label={next.season === season ? `Episode ${next.episode}` : `Season ${next.season}, episode 1`}
               autoplay={autoNext}
+              seconds={upNextIn}
               onPlay={playNext}
               onCancel={() => setEnded(false)}
             />

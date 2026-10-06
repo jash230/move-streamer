@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { playbackState } from './api'
+import { playbackLeft, type PlaybackTarget } from './api'
+
+// Seconds left, bucketed the way the tests read best.
+const playbackState = (raw: unknown, want: PlaybackTarget) => {
+  const left = playbackLeft(raw, want)
+  return left === null ? null : left < 1.5 ? 'ended' : 'playing'
+}
 
 const ep = { id: '1399', season: 1, episode: 1 }
 
@@ -14,7 +20,14 @@ const show = (id: number | string, episodes: Record<string, number>, extra = {})
   ...extra,
 })
 
-describe('playbackState', () => {
+describe('playbackLeft', () => {
+  it('reports the seconds left, so Up next can start before the end', () => {
+    expect(playbackLeft(vidsrc('playing', 3687, 3697), ep)).toBe(10)
+    expect(playbackLeft({ type: 'MEDIA_DATA', data: [show(1399, { s1e1: 3690.1 })] }, ep)).toBeCloseTo(7)
+    expect(playbackLeft(vidsrc('playing', 0, 0), ep)).toBe(Infinity)
+    expect(playbackLeft(vidsrc('completed', 3697.2, 3697), ep)).toBe(0)
+  })
+
   it('reads VidSrc player events', () => {
     expect(playbackState(vidsrc('playing', 5, 3697), ep)).toBe('playing')
     expect(playbackState(vidsrc('playing', 0, 0), ep)).toBe('playing')

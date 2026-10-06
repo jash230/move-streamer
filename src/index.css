@@ -359,7 +359,7 @@ main { position: relative; min-height: 70dvh; }
 .upnext-play { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: #fff; color: #000; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; transition: background var(--dur) var(--ease); }
 .upnext-play:hover { background: #e4e4e7; }
 .upnext-ring { width: 18px; height: 18px; margin-left: -4px; transform: rotate(-90deg); }
-.upnext-ring circle { fill: none; stroke: var(--accent); stroke-width: 4; stroke-dasharray: 8; transition: stroke-dashoffset 1s linear; }
+.upnext-ring circle { fill: none; stroke: var(--accent); stroke-width: 4; transition: stroke-dashoffset 1s linear; }
 .upnext-ring + svg { display: none; }
 .upnext-cancel { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; color: var(--text-muted); cursor: pointer; }
 .upnext-cancel:hover { background: rgb(255 255 255 / 0.1); color: var(--text); }

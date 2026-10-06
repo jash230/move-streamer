@@ -250,10 +250,8 @@ export const SERVERS: Server[] = [
 
 export interface PlaybackTarget { id: string; season?: number; episode?: number }
 
-const atEnd = (watched: unknown, duration: unknown): 'ended' | 'playing' | null =>
-  typeof watched === 'number' && typeof duration === 'number' && duration > 60
-    ? duration - watched < 1.5 ? 'ended' : 'playing'
-    : null
+const left = (watched: unknown, duration: unknown) =>
+  typeof watched === 'number' && typeof duration === 'number' && duration > 60 ? Math.max(0, duration - watched) : null
 
 // Embed players report playback through postMessage, each in its own shape:
 // - VidSrc: { type: 'PLAYER_EVENT', data: { player_info: { tmdb, season, episode }, player_status: 'completed', player_progress, player_duration } }
@@ -261,7 +259,9 @@ const atEnd = (watched: unknown, duration: unknown): 'ended' | 'playing' | null 
 //   titles, each with show_progress['s1e2'].progress (TV) or progress (movies) as { watched, duration }.
 //   That's the player's whole watch history, so only the entry for the title and episode on screen counts.
 // - Others: { data: { event: 'ended' } } or { currentTime, duration }.
-export function playbackState(raw: unknown, want: PlaybackTarget): 'ended' | 'playing' | null {
+// Returns the seconds left in the title on screen (0 once it ended, Infinity while playing with no
+// known length), or null when the message isn't about it.
+export function playbackLeft(raw: unknown, want: PlaybackTarget): number | null {
   let d = raw
   if (typeof d === 'string') {
     try { d = JSON.parse(d) } catch { return null }
@@ -276,18 +276,18 @@ export function playbackState(raw: unknown, want: PlaybackTarget): 'ended' | 'pl
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const entry = entries.find((x: any) => String(x?.id) === want.id) as any
     const p = tv ? entry?.show_progress?.[`s${want.season}e${want.episode}`]?.progress : entry?.progress
-    return atEnd(p?.watched, p?.duration)
+    return left(p?.watched, p?.duration)
   }
 
   const info = m.data?.player_info
   if (info && (String(info.tmdb) !== want.id || (tv && (Number(info.season) !== want.season || Number(info.episode) !== want.episode)))) return null
   const status = m.data?.player_status
-  if (status === 'completed' || status === 'ended') return 'ended'
-  if (typeof status === 'string') return atEnd(m.data.player_progress, m.data.player_duration) ?? 'playing'
+  if (status === 'completed' || status === 'ended') return 0
+  if (typeof status === 'string') return left(m.data.player_progress, m.data.player_duration) ?? Infinity
 
   const event = m.data?.event ?? m.event
-  if (event === 'ended' || event === 'complete') return 'ended'
-  return atEnd(m.data?.currentTime ?? m.currentTime ?? m.timestamp, m.data?.duration ?? m.duration)
+  if (event === 'ended' || event === 'complete') return 0
+  return left(m.data?.currentTime ?? m.currentTime ?? m.timestamp, m.data?.duration ?? m.duration)
 }
 
 const baseDomain = (host: string) => host.split('.').slice(-2).join('.')

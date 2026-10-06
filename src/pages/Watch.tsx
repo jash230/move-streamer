@@ -1,5 +1,5 @@
 import { ArrowLeft, Clock, Play, Star, TriangleAlert } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
 import { getDetails, getEpisodes, img, playbackState, sameSite, SERVERS, type MediaType, type Season } from '../api'
@@ -46,6 +46,11 @@ export default function Watch({ type }: { type: MediaType }) {
   const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0]
   const [autoNext, setAutoNext] = useState(loadAutoNext)
   const [ended, setEnded] = useState(false)
+  // The episode the player iframe was loaded with, while auto-next has switched episodes inside it.
+  const [frameAt, setFrameAt] = useState<{ season: number; episode: number } | null>(null)
+  const frameRef = useRef<HTMLIFrameElement>(null)
+  const switchCheck = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const frame = frameAt ?? { season, episode }
   const next = type === 'tv' ? nextEpisode(item?.seasons, season, episode) : undefined
 
   useEffect(() => setEnded(false), [season, episode, serverId])
@@ -73,6 +78,7 @@ export default function Watch({ type }: { type: MediaType }) {
     const onMessage = (e: MessageEvent) => {
       if (!sameSite(e.origin, src)) return
       const state = playbackState(e.data, want)
+      if (state) clearTimeout(switchCheck.current)
       if (state === 'playing') seenPlaying = true
       else if (state === 'ended' && seenPlaying) setEnded(true)
     }
@@ -82,10 +88,27 @@ export default function Watch({ type }: { type: MediaType }) {
 
   const playNext = useCallback(() => {
     if (!next) return
+    const win = frameRef.current?.contentWindow
+    if (playing && server.switchEpisode && win) {
+      server.switchEpisode(win, next.season, next.episode)
+      setFrameAt((at) => at ?? { season, episode })
+      // If the player never reports the new episode, load it the normal way.
+      clearTimeout(switchCheck.current)
+      switchCheck.current = setTimeout(() => setFrameAt(null), 10_000)
+    }
     setSeason(next.season)
     setEpisode(next.episode)
     setPlaying(true)
-  }, [next?.season, next?.episode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [next?.season, next?.episode, playing, server, season, episode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Anything other than auto-next (picking an episode or server) reloads the player as usual.
+  const pickEpisode = (s: number, e: number) => {
+    clearTimeout(switchCheck.current)
+    setFrameAt(null)
+    setSeason(s)
+    setEpisode(e)
+  }
+  useEffect(() => () => clearTimeout(switchCheck.current), [])
 
   const toggleAutoNext = () => {
     setAutoNext((on) => {
@@ -95,12 +118,12 @@ export default function Watch({ type }: { type: MediaType }) {
   }
 
   useEffect(() => {
-    setEpisode(1)
-    setSeason(item?.seasons?.[0]?.season_number ?? 1)
-  }, [item])
+    pickEpisode(item?.seasons?.[0]?.season_number ?? 1, 1)
+  }, [item]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickServer = (sid: string, reason: 'picker' | 'try_next' = 'picker') => {
     if (sid !== serverId) track('server_switch', { from: serverId, to: sid, reason, playing, id, mt: type })
+    setFrameAt(null)
     setServerId(sid)
     try { localStorage.setItem(SERVER_KEY, sid) } catch { /* ignore */ }
   }
@@ -137,8 +160,9 @@ export default function Watch({ type }: { type: MediaType }) {
         <div className="player" style={backdrop ? { backgroundImage: `url(${backdrop})` } : undefined}>
           {playing ? (
             <iframe
-              key={`${server.id}-${season}-${episode}`}
-              src={server.url(type, id, season, episode)}
+              ref={frameRef}
+              key={`${server.id}-${frame.season}-${frame.episode}`}
+              src={server.url(type, id, frame.season, frame.episode)}
               // `*`, not the default 'src': some servers redirect to another domain (vidsrc-embed.ru →
               // vidsrc.sh), which would otherwise lose fullscreen and autoplay.
               allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
@@ -197,8 +221,8 @@ export default function Watch({ type }: { type: MediaType }) {
             episode={episode}
             autoNext={autoNext}
             onToggleAutoNext={toggleAutoNext}
-            onSeason={(s) => { setSeason(s); setEpisode(1) }}
-            onEpisode={(e) => { setEpisode(e); setPlaying(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            onSeason={(s) => pickEpisode(s, 1)}
+            onEpisode={(e) => { pickEpisode(season, e); setPlaying(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
           />
         )}
       </div>

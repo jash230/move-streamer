@@ -201,6 +201,9 @@ export interface Server {
   name: string
   popups: boolean
   url: (type: MediaType, id: string, season: number, episode: number) => string
+  // Switches episodes inside the running player on a postMessage, for players that make every
+  // fresh load wait for a click.
+  switchEpisode?: (frame: Window, season: number, episode: number) => void
 }
 
 // Embed players, each a separate source, ordered by how reliably they played in a real-browser
@@ -217,6 +220,8 @@ export const SERVERS: Server[] = [
       type === 'movie'
         ? `${VIDSRC_BASE}/embed/movie?tmdb=${id}`
         : `${VIDSRC_BASE}/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+    // A fresh VidSrc load always shows its own play button, so auto-next can't reload it.
+    switchEpisode: (frame, season, episode) => frame.postMessage({ type: 'TV_SET', season, episode }, '*'),
   },
   {
     id: 'vidrock',

@@ -1,7 +1,8 @@
 import { Analytics } from '@vercel/analytics/react'
 import { KeyRound } from 'lucide-react'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { startTracking, track } from './analytics'
 import { hasApiKey } from './api'
 import Navbar from './components/Navbar'
 import Browse from './pages/Browse'
@@ -9,8 +10,10 @@ import Home from './pages/Home'
 import Israel from './pages/Israel'
 import Search from './pages/Search'
 import Watch from './pages/Watch'
-import AdminReviews from './pages/AdminReviews'
 import NotFound from './pages/NotFound'
+
+// The dashboard (and Clerk) load only when someone opens /admin.
+const AdminApp = lazy(() => import('./admin/AdminApp'))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -20,10 +23,29 @@ function ScrollToTop() {
   return null
 }
 
+function PageViews() {
+  const { pathname } = useLocation()
+  useEffect(startTracking, [])
+  useEffect(() => track('page_view'), [pathname])
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <Routes>
+        <Route path="/admin/*" element={<Suspense fallback={null}><AdminApp /></Suspense>} />
+        <Route path="*" element={<Site />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+function Site() {
+  return (
+    <>
       <ScrollToTop />
+      <PageViews />
       <a href="#main" className="skip-link">Skip to content</a>
       <Navbar />
       <main id="main">
@@ -43,7 +65,6 @@ export default function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/movie/:id" element={<Watch type="movie" />} />
           <Route path="/tv/:id" element={<Watch type="tv" />} />
-          <Route path="/admin/reviews" element={<AdminReviews />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
@@ -52,6 +73,6 @@ export default function App() {
         <span className="muted">Metadata by TMDB. Video is served by third-party players.</span>
       </footer>
       <Analytics />
-    </BrowserRouter>
+    </>
   )
 }

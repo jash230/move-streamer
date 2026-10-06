@@ -1,6 +1,7 @@
 import { ArrowLeft, Clock, Play, Star, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { track } from '../analytics'
 import { getDetails, getEpisodes, img, isEndedMessage, sameSite, SERVERS, type MediaType, type Season } from '../api'
 import ServerPicker, { TryNextServer } from '../components/ServerPicker'
 import { SourcePicker, TorrentNotice, TorrentVideo, useTorrentStreams } from '../components/Torrent'
@@ -51,9 +52,21 @@ export default function Watch({ type }: { type: MediaType }) {
 
   useEffect(() => setEnded(false), [season, episode, serverId])
 
-  // Embedded players only tell us they finished through postMessage.
+  const title = item?.title
+  const playProps = { id, mt: type, title, s: type === 'tv' ? season : undefined, e: type === 'tv' ? episode : undefined, server: serverId }
   useEffect(() => {
-    if (!playing || server.torrent || type !== 'tv') return
+    if (title) track('title_view', { id, mt: type, title })
+  }, [id, type, title])
+  useEffect(() => {
+    if (playing && title) track('play_start', playProps)
+  }, [playing, title, serverId, season, episode]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (ended && title) track('play_finish', playProps)
+  }, [ended]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Embedded players only tell us they finished through postMessage (movies too, for play_finish).
+  useEffect(() => {
+    if (!playing || server.torrent) return
     const src = server.url(type, id, season, episode)
     const onMessage = (e: MessageEvent) => {
       if (sameSite(e.origin, src) && isEndedMessage(e.data)) setEnded(true)
@@ -81,7 +94,8 @@ export default function Watch({ type }: { type: MediaType }) {
     setSeason(item?.seasons?.[0]?.season_number ?? 1)
   }, [item])
 
-  const pickServer = (sid: string) => {
+  const pickServer = (sid: string, reason: 'picker' | 'try_next' = 'picker') => {
+    if (sid !== serverId) track('server_switch', { from: serverId, to: sid, reason, playing, id, mt: type })
     setServerId(sid)
     try { localStorage.setItem(SERVER_KEY, sid) } catch { /* ignore */ }
   }
@@ -149,7 +163,7 @@ export default function Watch({ type }: { type: MediaType }) {
         <div className="pickers">
           <ServerPicker value={server} onChange={pickServer} />
           {server.torrent && <SourcePicker torrent={torrent} onPick={() => setPlaying(true)} />}
-          <TryNextServer value={server} onChange={pickServer} />
+          <TryNextServer value={server} onChange={(sid) => pickServer(sid, 'try_next')} />
         </div>
         {server.torrent && <TorrentNotice torrent={torrent} isTv={type === 'tv'} />}
 

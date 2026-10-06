@@ -1,5 +1,7 @@
 import { SearchX } from 'lucide-react'
+import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { track } from '../analytics'
 import { search } from '../api'
 import Card, { CardSkeleton } from '../components/Card'
 import Seo from '../components/Seo'
@@ -9,6 +11,9 @@ export default function Search() {
   const [params] = useSearchParams()
   const q = params.get('q') ?? ''
   const { data, error, loading } = useAsync(() => search(q), [q])
+  useEffect(() => {
+    if (data && q.trim()) track('search', { q: q.trim(), results: data.length })
+  }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="page">
       <Seo title={`Search: ${q}`} noindex />

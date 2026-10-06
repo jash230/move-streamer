@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/react'
 import { KeyRound } from 'lucide-react'
 import { useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
@@ -21,6 +22,7 @@ function ScrollToTop() {
 export default function App() {
   return (
     <BrowserRouter>
+      <Analytics />
       <ScrollToTop />
       <a href="#main" className="skip-link">Skip to content</a>
       <Navbar />

@@ -22,7 +22,6 @@ function ScrollToTop() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Analytics />
       <ScrollToTop />
       <a href="#main" className="skip-link">Skip to content</a>
       <Navbar />

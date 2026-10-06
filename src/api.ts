@@ -224,7 +224,7 @@ export const SERVERS: Server[] = [
   {
     id: 'vidzee',
     name: 'VidZee',
-    note: 'Separate source',
+    note: 'No pop-ups',
     popups: false,
     url: (type, id, s, e) =>
       type === 'movie' ? `https://player.vidzee.wtf/embed/movie/${id}` : `https://player.vidzee.wtf/embed/tv/${id}/${s}/${e}`,
@@ -232,7 +232,7 @@ export const SERVERS: Server[] = [
   {
     id: 'vidsrcto',
     name: 'VidSrc.to',
-    note: 'VidSrc mirror',
+    note: 'Backup',
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie' ? `https://vidsrc.to/embed/movie/${id}` : `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
@@ -240,7 +240,7 @@ export const SERVERS: Server[] = [
   {
     id: 'vidsrcsh',
     name: 'VidSrc.sh',
-    note: 'VidSrc mirror',
+    note: 'Backup',
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie'

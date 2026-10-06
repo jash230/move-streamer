@@ -118,11 +118,13 @@ export default function Dropdown<T>({ label, groups, value, getKey, renderValue,
           >
             {groups.map((g) => (
               <li key={g.label} role="presentation">
-                <span className="dd-group" id={`${uid}-g-${g.label}`} aria-hidden="true">
-                  {g.icon}
-                  {g.label}
-                </span>
-                <ul role="group" aria-labelledby={`${uid}-g-${g.label}`}>
+                {groups.length > 1 && (
+                  <span className="dd-group" id={`${uid}-g-${g.label}`} aria-hidden="true">
+                    {g.icon}
+                    {g.label}
+                  </span>
+                )}
+                <ul role="group" aria-label={g.label}>
                   {g.items.map((item) => {
                     const i = ++index
                     const selected = value !== undefined && getKey(item) === getKey(value)

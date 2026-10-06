@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getDetails, getEpisodes, img, isEndedMessage, sameSite, SERVERS, type MediaType, type Season } from '../api'
 import ServerPicker, { TryNextServer } from '../components/ServerPicker'
-import { SourcePicker, TorrentNotice, TorrentVideo, useTorrentStreams } from '../components/Torrent'
 import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
 import { useAsync } from '../useAsync'
@@ -44,7 +43,6 @@ export default function Watch({ type }: { type: MediaType }) {
   const [playing, setPlaying] = useState(params.get('play') === '1')
   const [serverId, setServerId] = useState(loadServer)
   const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0]
-  const torrent = useTorrentStreams(item?.imdb_id, type, season, episode, Boolean(server.torrent && item))
   const [autoNext, setAutoNext] = useState(loadAutoNext)
   const [ended, setEnded] = useState(false)
   const next = type === 'tv' ? nextEpisode(item?.seasons, season, episode) : undefined
@@ -53,7 +51,7 @@ export default function Watch({ type }: { type: MediaType }) {
 
   // Embedded players only tell us they finished through postMessage.
   useEffect(() => {
-    if (!playing || server.torrent || type !== 'tv') return
+    if (!playing || type !== 'tv') return
     const src = server.url(type, id, season, episode)
     const onMessage = (e: MessageEvent) => {
       if (sameSite(e.origin, src) && isEndedMessage(e.data)) setEnded(true)
@@ -116,9 +114,7 @@ export default function Watch({ type }: { type: MediaType }) {
         <button className="back" onClick={() => navigate(-1)}><ArrowLeft size={18} /> Back</button>
 
         <div className="player" style={backdrop ? { backgroundImage: `url(${backdrop})` } : undefined}>
-          {playing && server.torrent ? (
-            <TorrentVideo torrent={torrent} title={item.title} onEnded={() => setEnded(true)} />
-          ) : playing ? (
+          {playing ? (
             <iframe
               key={`${server.id}-${season}-${episode}`}
               src={server.url(type, id, season, episode)}
@@ -148,10 +144,8 @@ export default function Watch({ type }: { type: MediaType }) {
 
         <div className="pickers">
           <ServerPicker value={server} onChange={pickServer} />
-          {server.torrent && <SourcePicker torrent={torrent} onPick={() => setPlaying(true)} />}
           <TryNextServer value={server} onChange={pickServer} />
         </div>
-        {server.torrent && <TorrentNotice torrent={torrent} isTv={type === 'tv'} />}
 
         <div className="info">
           {poster && <img className="info-poster" src={poster} alt="" width={160} height={240} />}

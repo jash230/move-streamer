@@ -199,10 +199,7 @@ export const discoverByCountry = async (type: MediaType, country: string, sort =
 export interface Server {
   id: string
   name: string
-  note: string
   popups: boolean
-  // Torrent servers play in our own <video> instead of a third-party iframe, so they carry no ads.
-  torrent?: boolean
   url: (type: MediaType, id: string, season: number, episode: number) => string
 }
 
@@ -214,7 +211,6 @@ export const SERVERS: Server[] = [
   {
     id: 'vidsrc',
     name: 'VidSrc',
-    note: 'Most reliable',
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie'
@@ -224,7 +220,6 @@ export const SERVERS: Server[] = [
   {
     id: 'vidzee',
     name: 'VidZee',
-    note: 'No pop-ups',
     popups: false,
     url: (type, id, s, e) =>
       type === 'movie' ? `https://player.vidzee.wtf/embed/movie/${id}` : `https://player.vidzee.wtf/embed/tv/${id}/${s}/${e}`,
@@ -232,7 +227,6 @@ export const SERVERS: Server[] = [
   {
     id: 'vidsrcto',
     name: 'VidSrc.to',
-    note: 'Backup',
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie' ? `https://vidsrc.to/embed/movie/${id}` : `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
@@ -240,7 +234,6 @@ export const SERVERS: Server[] = [
   {
     id: 'vidsrcsh',
     name: 'VidSrc.sh',
-    note: 'Backup',
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie'
@@ -250,7 +243,6 @@ export const SERVERS: Server[] = [
   {
     id: 'vidlink',
     name: 'VidLink',
-    note: 'Some titles',
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie'
@@ -260,108 +252,11 @@ export const SERVERS: Server[] = [
   {
     id: '2embed',
     name: '2Embed',
-    note: 'Some titles',
     popups: false,
     url: (type, id, s, e) =>
       type === 'movie' ? `https://www.2embed.cc/embed/${id}` : `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`,
   },
-  {
-    id: 'torrentio',
-    name: 'Torrentio',
-    note: 'Torrents via Stremio',
-    popups: false,
-    torrent: true,
-    url: () => '',
-  },
 ]
-
-// Torrentio lists torrents; Stremio's local streaming server turns them into HTTP video we can play.
-const TORRENTIO_BASE = 'https://torrentio.strem.fun'
-const TORRENTIO_CONFIG = ((import.meta.env.VITE_TORRENTIO_CONFIG as string | undefined) ?? 'qualityfilter=scr,cam').replace(/^\/|\/$/g, '')
-export const STREMIO_SERVER = ((import.meta.env.VITE_STREMIO_SERVER as string | undefined) ?? 'http://127.0.0.1:11470').replace(/\/$/, '')
-
-export interface TorrentStream {
-  key: string
-  quality: string
-  title: string
-  file?: string
-  seeders?: number
-  size?: string
-  source?: string
-  url: string
-  // Name hints that the browser can't decode it natively (HEVC, AC3/DTS audio, MKV…).
-  needsTranscode: boolean
-}
-
-const TRANSCODE_HINT = /x265|hevc|h\.?265|av1|10.?bit|\b(e?ac3|ddp?|dd\+?\d|dts|truehd|atmos|flac)\b|\.(mkv|avi)\b/i
-
-export async function getTorrentStreams(imdbId: string, type: MediaType, season: number, episode: number): Promise<TorrentStream[]> {
-  const target = type === 'movie' ? `movie/${imdbId}` : `series/${imdbId}:${season}:${episode}`
-  const config = TORRENTIO_CONFIG ? `${TORRENTIO_CONFIG}/` : ''
-  const res = await fetch(`${TORRENTIO_BASE}/${config}stream/${target}.json`)
-  if (!res.ok) throw new Error(`Torrentio ${res.status}: ${res.statusText}`)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { streams = [] } = (await res.json()) as { streams: any[] }
-  return streams
-    .filter((st) => st.url || st.infoHash)
-    .map((st, i) => {
-      const lines: string[] = String(st.title ?? '').split('\n')
-      const stats = lines.find((l) => l.includes('💾')) ?? ''
-      const file: string | undefined = st.behaviorHints?.filename ?? (lines[1] && lines[1] !== stats ? lines[1] : undefined)
-      return {
-        key: `${st.infoHash ?? st.url}-${st.fileIdx ?? i}`,
-        quality: String(st.name ?? '').split('\n').slice(1).join(' ') || 'Unknown',
-        title: lines[0],
-        file,
-        seeders: Number(stats.match(/👤 (\d+)/)?.[1]) || undefined,
-        size: stats.match(/💾 ([\d.]+ [KMGT]B)/)?.[1],
-        source: stats.match(/⚙️ (.+)$/)?.[1]?.trim(),
-        url: st.url ?? `${STREMIO_SERVER}/${st.infoHash}/${st.fileIdx ?? -1}`,
-        needsTranscode: TRANSCODE_HINT.test(`${lines[0]} ${file ?? ''}`),
-      }
-    })
-}
-
-// Best default: a browser-friendly 1080p (or 720p) with the most seeders, else whatever ranks first.
-export function pickDefaultStream(streams: TorrentStream[]) {
-  for (const q of ['1080p', '720p']) {
-    const list = streams.filter((s) => s.quality.startsWith(q)).sort((a, b) => (b.seeders ?? 0) - (a.seeders ?? 0))
-    const best = list.find((s) => !s.needsTranscode) ?? list[0]
-    if (best) return best
-  }
-  return streams[0]
-}
-
-export async function stremioServerUp() {
-  try {
-    const res = await fetch(`${STREMIO_SERVER}/settings`, { signal: AbortSignal.timeout(2500) })
-    return res.ok
-  } catch {
-    return false
-  }
-}
-
-// Stremio's server remuxes/transcodes to HLS, keeping any codec the browser can already decode.
-export function transcodeUrl(mediaUrl: string) {
-  const ms = typeof MediaSource !== 'undefined' ? MediaSource : undefined
-  const params = new URLSearchParams({ mediaURL: mediaUrl, maxAudioChannels: '2' })
-  params.append('videoCodecs', 'h264')
-  if (ms?.isTypeSupported('video/mp4; codecs="hvc1.1.6.L150.B0"')) params.append('videoCodecs', 'h265')
-  for (const a of ['aac', 'mp3']) params.append('audioCodecs', a)
-  if (ms?.isTypeSupported('audio/mp4; codecs="opus"')) params.append('audioCodecs', 'opus')
-  return `${STREMIO_SERVER}/hlsv2/${crypto.randomUUID()}/master.m3u8?${params}`
-}
-
-export async function torrentPeers(mediaUrl: string) {
-  const m = mediaUrl.match(/^(.*\/[0-9a-f]{40})\/-?\d+$/i)
-  if (!m) return undefined
-  try {
-    const res = await fetch(`${m[1]}/stats.json`)
-    return ((await res.json()) as { peers?: number }).peers
-  } catch {
-    return undefined
-  }
-}
 
 // Embed players report playback through postMessage, each in its own shape (VidLink/VidFast send
 // { type: 'PLAYER_EVENT', data: { event, currentTime, duration } }, Videasy sends JSON progress strings).

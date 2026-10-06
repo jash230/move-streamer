@@ -215,7 +215,7 @@ main { position: relative; min-height: 70dvh; }
 .card-sub { display: flex; gap: 8px; font-size: 0.8rem; color: var(--text-muted); }
 
 /* Continue Watching */
-.poster-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(255 255 255 / 0.25); }
+.poster-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(255 255 255 / 0.3); }
 .poster-progress > span { display: block; height: 100%; background: var(--accent); }
 .card-wrap { position: relative; min-width: 0; }
 .card-remove { position: absolute; top: 6px; right: 6px; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.72); backdrop-filter: blur(6px); color: #fff; cursor: pointer; opacity: 0; transition: opacity var(--dur) var(--ease), background var(--dur) var(--ease); }

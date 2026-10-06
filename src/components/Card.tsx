@@ -2,7 +2,7 @@ import { Play, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { img, type Media } from '../api'
 
-// `to`, `sub` and `progress` (0–1, a bar along the poster) are for Continue Watching.
+// `to`, `sub` and `progress` (0–1, a bar along the poster; at least a sliver so a few minutes in shows) are for Continue Watching.
 export default function Card({ item, rank, to, sub, progress }: { item: Media; rank?: number; to?: string; sub?: string; progress?: number }) {
   const poster = img(item.poster_path)
   const year = item.date.slice(0, 4)
@@ -18,7 +18,7 @@ export default function Card({ item, rank, to, sub, progress }: { item: Media; r
             <Star size={12} fill="currentColor" /> {item.vote_average.toFixed(1)}
           </span>
         )}
-        {progress ? <span className="poster-progress" aria-hidden="true"><span style={{ width: `${Math.min(100, progress * 100)}%` }} /></span> : null}
+        {progress ? <span className="poster-progress" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.max(5, progress * 100))}%` }} /></span> : null}
       </div>
       <div className="card-meta">
         <span className="card-title">{item.title}</span>

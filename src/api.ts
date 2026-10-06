@@ -206,24 +206,42 @@ export interface Server {
   url: (type: MediaType, id: string, season: number, episode: number) => string
 }
 
-// Embed players. Third-party players refuse to run inside a sandboxed iframe, so pop-ups can't be
-// blocked from our side — Videasy opens ad pop-ups; VidSrc usually doesn't.
+// Embed players, ordered by how reliably they played in a real-browser test on 2026-10-06
+// (Inception, Breaking Bad, Friends, Fauda, Lanterns). Videasy, VidFast and SuperEmbed were
+// dropped: they played none of them. Third-party players refuse to run in a sandboxed iframe,
+// so pop-ups can't be blocked from our side.
 export const SERVERS: Server[] = [
-  {
-    id: 'videasy',
-    name: 'Videasy',
-    note: 'Opens ads',
-    popups: true,
-    url: (type, id, s, e) =>
-      type === 'movie'
-        ? `https://player.videasy.net/movie/${id}?color=E11D48`
-        : `https://player.videasy.net/tv/${id}/${s}/${e}?color=E11D48&nextEpisode=true`,
-  },
   {
     id: 'vidsrc',
     name: 'VidSrc',
-    note: 'Likely no ads',
+    note: 'Most reliable',
+    popups: true,
+    url: (type, id, s, e) =>
+      type === 'movie'
+        ? `https://vidsrc-embed.ru/embed/movie?tmdb=${id}`
+        : `https://vidsrc-embed.ru/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+  },
+  {
+    id: 'vidzee',
+    name: 'VidZee',
+    note: 'Separate source',
     popups: false,
+    url: (type, id, s, e) =>
+      type === 'movie' ? `https://player.vidzee.wtf/embed/movie/${id}` : `https://player.vidzee.wtf/embed/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: 'vidsrcto',
+    name: 'VidSrc.to',
+    note: 'VidSrc mirror',
+    popups: true,
+    url: (type, id, s, e) =>
+      type === 'movie' ? `https://vidsrc.to/embed/movie/${id}` : `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: 'vidsrcsh',
+    name: 'VidSrc.sh',
+    note: 'VidSrc mirror',
+    popups: true,
     url: (type, id, s, e) =>
       type === 'movie'
         ? `${VIDSRC_BASE}/embed/movie?tmdb=${id}`
@@ -232,7 +250,7 @@ export const SERVERS: Server[] = [
   {
     id: 'vidlink',
     name: 'VidLink',
-    note: 'Quick to start',
+    note: 'Some titles',
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie'
@@ -240,38 +258,10 @@ export const SERVERS: Server[] = [
         : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true`,
   },
   {
-    id: 'vidfast',
-    name: 'VidFast',
-    note: 'Choose your quality',
-    popups: true,
-    url: (type, id, s, e) =>
-      type === 'movie'
-        ? `https://vidfast.pro/movie/${id}?theme=E11D48`
-        : `https://vidfast.pro/tv/${id}/${s}/${e}?theme=E11D48&nextButton=true`,
-  },
-  {
-    id: 'vidsrcto',
-    name: 'VidSrc.to',
-    note: 'Backup',
-    popups: true,
-    url: (type, id, s, e) =>
-      type === 'movie' ? `https://vidsrc.to/embed/movie/${id}` : `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: 'superembed',
-    name: 'SuperEmbed',
-    note: 'Biggest library',
-    popups: true,
-    url: (type, id, s, e) =>
-      type === 'movie'
-        ? `https://multiembed.mov/?video_id=${id}&tmdb=1`
-        : `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
-  },
-  {
     id: '2embed',
     name: '2Embed',
-    note: 'Backup',
-    popups: true,
+    note: 'Some titles',
+    popups: false,
     url: (type, id, s, e) =>
       type === 'movie' ? `https://www.2embed.cc/embed/${id}` : `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`,
   },

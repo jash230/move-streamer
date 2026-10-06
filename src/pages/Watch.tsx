@@ -8,7 +8,8 @@ import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
 import { useAsync } from '../useAsync'
 
-const SERVER_KEY = 'streambox.server'
+// v2: the old default (Videasy) stopped working, so saved choices from before are reset.
+const SERVER_KEY = 'streambox.server.v2'
 const AUTONEXT_KEY = 'streambox.autonext'
 
 function loadAutoNext() {

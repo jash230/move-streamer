@@ -223,7 +223,7 @@ export const SERVERS: Server[] = [
     name: 'VidRock',
     popups: false,
     url: (type, id, s, e) =>
-      type === 'movie' ? `https://vidrock.net/movie/${id}` : `https://vidrock.net/tv/${id}/${s}/${e}`,
+      type === 'movie' ? `https://vidrock.net/movie/${id}?autoplay=true` : `https://vidrock.net/tv/${id}/${s}/${e}?autoplay=true`,
   },
   {
     id: 'vidzee',
@@ -238,8 +238,8 @@ export const SERVERS: Server[] = [
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie'
-        ? `https://vidlink.pro/movie/${id}?primaryColor=E11D48`
-        : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true`,
+        ? `https://vidlink.pro/movie/${id}?primaryColor=E11D48&autoplay=true`
+        : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true&autoplay=true`,
   },
 ]
 

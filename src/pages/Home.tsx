@@ -1,4 +1,4 @@
-import { discoverByCountry, getList, getTrending } from '../api'
+import { discoverByCountry, getFamousTv, getList, getTrending } from '../api'
 import Hero from '../components/Hero'
 import Row from '../components/Row'
 import Seo from '../components/Seo'
@@ -15,10 +15,11 @@ export default function Home() {
       <div className="rows">
         <Row title="Trending This Week" load={getTrending} />
         <Row title="Popular Movies" load={() => getList('/movie/popular', 'movie')} />
-        <Row title="Popular TV Shows" load={() => getList('/tv/popular', 'tv')} />
+        <Row title="Popular TV Shows" load={() => getFamousTv('popularity.desc')} />
+        <Row title="All-Time Favorite Shows" load={() => getFamousTv('vote_count.desc')} />
         <Row title="Israeli TV" load={() => discoverByCountry('tv', 'IL')} />
         <Row title="Top Rated Movies" load={() => getList('/movie/top_rated', 'movie')} />
-        <Row title="Top Rated TV" load={() => getList('/tv/top_rated', 'tv')} />
+        <Row title="Top Rated TV" load={() => getFamousTv('vote_average.desc')} />
       </div>
     </>
   )

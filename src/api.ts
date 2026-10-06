@@ -76,13 +76,29 @@ function normalize(raw: any, fallbackType?: MediaType): Media {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Page = { results: any[] }
 
+// News, reality, talk and soap shows are almost never carried by the players, and unreleased
+// titles have nothing to play yet, so neither gets advertised.
+const UNSTREAMABLE_GENRES = new Set([10763, 10764, 10766, 10767])
+const FAMOUS_TV = { 'vote_count.gte': '1500', without_genres: [...UNSTREAMABLE_GENRES, 16].join(',') }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function streamable(raw: any) {
+  const date: string = raw.release_date ?? raw.first_air_date ?? ''
+  const genres: number[] = raw.genre_ids ?? []
+  return date !== '' && date <= new Date().toISOString().slice(0, 10) && !genres.some((g) => UNSTREAMABLE_GENRES.has(g))
+}
+
 export const getList = async (path: string, type: MediaType) =>
-  (await tmdb<Page>(path)).results.map((r) => normalize(r, type))
+  (await tmdb<Page>(path)).results.filter(streamable).map((r) => normalize(r, type))
 
 export const getTrending = async () =>
   (await tmdb<Page>('/trending/all/week')).results
-    .filter((r) => r.media_type === 'movie' || r.media_type === 'tv')
+    .filter((r) => (r.media_type === 'movie' || r.media_type === 'tv') && streamable(r))
     .map((r) => normalize(r))
+
+// Well-known shows only: enough votes to be famous, no daily/talk/news filler.
+export const getFamousTv = async (sort: string) =>
+  (await tmdb<Page>('/discover/tv', { ...FAMOUS_TV, sort_by: sort })).results.filter(streamable).map((r) => normalize(r, 'tv'))
 
 const fold = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 

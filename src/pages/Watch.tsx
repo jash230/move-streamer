@@ -118,7 +118,9 @@ export default function Watch({ type }: { type: MediaType }) {
             <iframe
               key={`${server.id}-${season}-${episode}`}
               src={server.url(type, id, season, episode)}
-              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+              // `*`, not the default 'src': some servers redirect to another domain (vidsrc-embed.ru →
+              // vidsrc.sh), which would otherwise lose fullscreen and autoplay.
+              allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
               allowFullScreen
               referrerPolicy="origin"
               title={`${item.title} player`}

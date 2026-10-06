@@ -203,10 +203,11 @@ export interface Server {
   url: (type: MediaType, id: string, season: number, episode: number) => string
 }
 
-// Embed players, ordered by how reliably they played in a real-browser test on 2026-10-06
-// (Inception, Breaking Bad, Friends, Fauda, Lanterns). Videasy, VidFast and SuperEmbed were
-// dropped: they played none of them. Third-party players refuse to run in a sandboxed iframe,
-// so pop-ups can't be blocked from our side.
+// Embed players, each a separate source, ordered by how reliably they played in a real-browser
+// test on 2026-10-06 (Inception, The Dark Knight, Breaking Bad, Friends). Dropped: Videasy, VidFast,
+// SuperEmbed, 2Embed, VidSrc.to and others that played none of them, and VidSrc mirrors that
+// duplicate Server 1. Third-party players refuse to run in a sandboxed iframe, so pop-ups can't
+// be blocked from our side.
 export const SERVERS: Server[] = [
   {
     id: 'vidsrc',
@@ -214,8 +215,15 @@ export const SERVERS: Server[] = [
     popups: true,
     url: (type, id, s, e) =>
       type === 'movie'
-        ? `https://vidsrc-embed.ru/embed/movie?tmdb=${id}`
-        : `https://vidsrc-embed.ru/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+        ? `${VIDSRC_BASE}/embed/movie?tmdb=${id}`
+        : `${VIDSRC_BASE}/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+  },
+  {
+    id: 'vidrock',
+    name: 'VidRock',
+    popups: false,
+    url: (type, id, s, e) =>
+      type === 'movie' ? `https://vidrock.net/movie/${id}` : `https://vidrock.net/tv/${id}/${s}/${e}`,
   },
   {
     id: 'vidzee',
@@ -225,22 +233,6 @@ export const SERVERS: Server[] = [
       type === 'movie' ? `https://player.vidzee.wtf/embed/movie/${id}` : `https://player.vidzee.wtf/embed/tv/${id}/${s}/${e}`,
   },
   {
-    id: 'vidsrcto',
-    name: 'VidSrc.to',
-    popups: true,
-    url: (type, id, s, e) =>
-      type === 'movie' ? `https://vidsrc.to/embed/movie/${id}` : `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: 'vidsrcsh',
-    name: 'VidSrc.sh',
-    popups: true,
-    url: (type, id, s, e) =>
-      type === 'movie'
-        ? `${VIDSRC_BASE}/embed/movie?tmdb=${id}`
-        : `${VIDSRC_BASE}/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
-  },
-  {
     id: 'vidlink',
     name: 'VidLink',
     popups: true,
@@ -248,13 +240,6 @@ export const SERVERS: Server[] = [
       type === 'movie'
         ? `https://vidlink.pro/movie/${id}?primaryColor=E11D48`
         : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true`,
-  },
-  {
-    id: '2embed',
-    name: '2Embed',
-    popups: false,
-    url: (type, id, s, e) =>
-      type === 'movie' ? `https://www.2embed.cc/embed/${id}` : `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`,
   },
 ]
 

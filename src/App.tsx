@@ -50,6 +50,7 @@ export default function App() {
         <span>Cucuflix</span>
         <span className="muted">Metadata by TMDB. Video is served by third-party players.</span>
       </footer>
+      <Analytics />
     </BrowserRouter>
   )
 }

@@ -8,6 +8,7 @@ export interface Media {
   poster_path: string | null
   backdrop_path: string | null
   vote_average: number
+  popularity: number
   date: string
 }
 
@@ -67,6 +68,7 @@ function normalize(raw: any, fallbackType?: MediaType): Media {
     poster_path: raw.poster_path ?? null,
     backdrop_path: raw.backdrop_path ?? null,
     vote_average: raw.vote_average ?? 0,
+    popularity: raw.popularity ?? 0,
     date: raw.release_date ?? raw.first_air_date ?? '',
   }
 }
@@ -82,10 +84,80 @@ export const getTrending = async () =>
     .filter((r) => r.media_type === 'movie' || r.media_type === 'tv')
     .map((r) => normalize(r))
 
-export const search = async (query: string) =>
-  (await tmdb<Page>('/search/multi', { query, include_adult: 'false' })).results
-    .filter((r) => r.media_type === 'movie' || r.media_type === 'tv')
-    .map((r) => normalize(r))
+const fold = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+
+// How closely a title matches what was typed: exact, prefix, word prefix, substring, anything else.
+function matchTier(title: string, query: string) {
+  const t = fold(title)
+  if (t === query) return 4
+  if (t.startsWith(query)) return 3
+  if (` ${t}`.includes(` ${query}`)) return 2
+  if (t.includes(query)) return 1
+  return 0
+}
+
+// TMDB only matches whole words ("dun" never finds Dune), so the best-known and trending
+// titles are also prefix-matched locally to make suggestions useful mid-word.
+const range = (n: number) => Array.from({ length: n }, (_, i) => String(i + 1))
+const POOL_SOURCES: [string, MediaType | undefined, Record<string, string>, number][] = [
+  ['/trending/all/week', undefined, {}, 3],
+  ['/movie/popular', 'movie', {}, 3],
+  ['/tv/popular', 'tv', {}, 3],
+  ['/discover/movie', 'movie', { sort_by: 'vote_count.desc' }, 10],
+  ['/discover/tv', 'tv', { sort_by: 'vote_count.desc' }, 10],
+]
+const POOL_KEY = 'search-pool-v1'
+const POOL_TTL = 24 * 60 * 60 * 1000
+let pool: Promise<Media[]> | undefined
+
+function loadPool(): Promise<Media[]> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(POOL_KEY) ?? 'null') as { at: number; items: Media[] } | null
+    if (saved && Date.now() - saved.at < POOL_TTL) return Promise.resolve(saved.items)
+  } catch { /* storage unavailable; refetch */ }
+  return Promise.allSettled(
+    POOL_SOURCES.flatMap(([path, type, params, pages]) =>
+      range(pages).map((page) =>
+        tmdb<Page>(path, { ...params, page }).then(({ results }) =>
+          results.filter((r) => type || r.media_type === 'movie' || r.media_type === 'tv').map((r) => ({ ...normalize(r, type), overview: '' })),
+        ),
+      ),
+    ),
+  ).then((pages) => {
+    const items = pages.flatMap((p) => (p.status === 'fulfilled' ? p.value : []))
+    try {
+      if (pages.every((p) => p.status === 'fulfilled')) localStorage.setItem(POOL_KEY, JSON.stringify({ at: Date.now(), items }))
+    } catch { /* quota or privacy mode */ }
+    return items
+  })
+}
+
+export const warmSearch = () => (pool ??= loadPool())
+
+const searchCache = new Map<string, Promise<Media[]>>()
+
+export function search(query: string) {
+  const key = fold(query)
+  let hit = searchCache.get(key)
+  if (!hit) {
+    const remote = tmdb<Page>('/search/multi', { query, include_adult: 'false' }).then(({ results }) =>
+      results.filter((r) => r.media_type === 'movie' || r.media_type === 'tv').map((r) => normalize(r)),
+    )
+    const local = warmSearch().then((all) => all.filter((m) => matchTier(m.title, key) > 0))
+    hit = Promise.all([remote, local]).then(([r, l]) => {
+      const seen = new Set<string>()
+      return [...l, ...r]
+        .filter((m) => !seen.has(`${m.media_type}-${m.id}`) && seen.add(`${m.media_type}-${m.id}`))
+        // Match quality first, but a famous title starting with the query beats an obscure exact match.
+        .map((m) => ({ m, score: matchTier(m.title, key) + 1.2 * Math.log10(1 + m.popularity) }))
+        .sort((a, b) => b.score - a.score)
+        .map(({ m }) => m)
+    })
+    hit.catch(() => searchCache.delete(key))
+    searchCache.set(key, hit)
+  }
+  return hit
+}
 
 export async function getDetails(type: MediaType, id: string): Promise<Details> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -119,13 +191,13 @@ export interface Server {
 }
 
 // Embed players. Third-party players refuse to run inside a sandboxed iframe, so pop-ups can't be
-// blocked from our side — Videasy is the default because it doesn't open pop-ups at all.
+// blocked from our side — Videasy opens ad pop-ups; VidSrc usually doesn't.
 export const SERVERS: Server[] = [
   {
     id: 'videasy',
     name: 'Videasy',
-    note: 'Recommended',
-    popups: false,
+    note: 'Opens ads',
+    popups: true,
     url: (type, id, s, e) =>
       type === 'movie'
         ? `https://player.videasy.net/movie/${id}?color=E11D48`
@@ -134,8 +206,8 @@ export const SERVERS: Server[] = [
   {
     id: 'vidsrc',
     name: 'VidSrc',
-    note: 'Backup',
-    popups: true,
+    note: 'Likely no ads',
+    popups: false,
     url: (type, id, s, e) =>
       type === 'movie'
         ? `${VIDSRC_BASE}/embed/movie?tmdb=${id}`

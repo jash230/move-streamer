@@ -2,7 +2,7 @@ import { ArrowLeft, Clock, Play, Star, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
-import { getDetails, getEpisodes, img, isEndedMessage, sameSite, SERVERS, type MediaType, type Season } from '../api'
+import { getDetails, getEpisodes, img, playbackState, sameSite, SERVERS, type MediaType, type Season } from '../api'
 import ServerPicker, { TryNextServer } from '../components/ServerPicker'
 import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
@@ -63,11 +63,18 @@ export default function Watch({ type }: { type: MediaType }) {
   }, [ended]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Embedded players only tell us they finished through postMessage (movies too, for play_finish).
+  // Players remember progress, so a rewatched episode can report "finished" before it starts; an end
+  // only counts once this episode has been seen playing.
   useEffect(() => {
     if (!playing) return
     const src = server.url(type, id, season, episode)
+    const want = { id, season: type === 'tv' ? season : undefined, episode: type === 'tv' ? episode : undefined }
+    let seenPlaying = false
     const onMessage = (e: MessageEvent) => {
-      if (sameSite(e.origin, src) && isEndedMessage(e.data)) setEnded(true)
+      if (!sameSite(e.origin, src)) return
+      const state = playbackState(e.data, want)
+      if (state === 'playing') seenPlaying = true
+      else if (state === 'ended' && seenPlaying) setEnded(true)
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)

@@ -66,6 +66,8 @@ const TLV = { 'x-vercel-ip-country': 'IL', 'x-vercel-ip-city': 'Tel%20Aviv', 'x-
 beforeAll(async () => {
   process.env.DATABASE_URL = 'pglite://memory'
   process.env.ADMIN_TZ = 'Asia/Jerusalem'
+  // A real token in .env.local would make the overview ask Vercel instead of these test visits.
+  delete process.env.VERCEL_TOKEN
 
   // Visitor A: lands on the home page and leaves (a bounce).
   expect((await send({ v: 'visitorAAAA', s: 'sessionA1111', r: 'https://www.google.com/', e: [

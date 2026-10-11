@@ -35,12 +35,18 @@ export default function ContinueWatching() {
       card={(m) => {
         const p = byKey.get(`${m.media_type}-${m.id}`)!
         return (
-          <div className="card-wrap" key={`${p.type}-${p.id}`}>
-            <Card item={m} to={`/${p.type}/${p.id}?play=1`} sub={subtitle(p)} progress={p.duration ? p.position / p.duration : 0} />
-            <button className="card-remove" onClick={() => removeProgress(p.type, p.id)} aria-label={`Remove ${p.title} from Continue Watching`}>
-              <X size={16} aria-hidden="true" />
-            </button>
-          </div>
+          <Card
+            key={`${p.type}-${p.id}`}
+            item={m}
+            to={`/${p.type}/${p.id}?play=1`}
+            sub={subtitle(p)}
+            progress={p.duration ? p.position / p.duration : 0}
+            action={
+              <button className="card-action" onClick={() => removeProgress(p.type, p.id)} aria-label={`Remove ${p.title} from Continue Watching`}>
+                <X size={16} aria-hidden="true" />
+              </button>
+            }
+          />
         )
       }}
     />

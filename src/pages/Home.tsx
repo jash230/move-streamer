@@ -1,6 +1,7 @@
 import { discoverByCountry, getFamousTv, getList, getTrending } from '../api'
 import ContinueWatching from '../components/ContinueWatching'
 import Hero from '../components/Hero'
+import MyListRow from '../components/MyListRow'
 import Row from '../components/Row'
 import Seo from '../components/Seo'
 
@@ -15,6 +16,7 @@ export default function Home() {
       <Hero load={getTrending} />
       <div className="rows">
         <ContinueWatching />
+        <MyListRow />
         <Row title="Top 10 this week" load={getTrending} ranked />
         <Row title="Popular Movies" load={() => getList('/movie/popular', 'movie')} />
         <Row title="Popular TV Shows" load={() => getFamousTv('popularity.desc')} />

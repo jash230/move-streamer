@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { formatTime, getProgress, listProgress, recordPlayback, removeProgress, saveProgress } from './progress'
+import { isWatched } from './library'
+import { formatTime, getProgress, listProgress, markWatched, recordPlayback, removeProgress, saveProgress } from './progress'
 
 const store = new Map<string, string>()
 vi.stubGlobal('localStorage', {
@@ -78,6 +79,34 @@ describe('recordPlayback', () => {
     saveProgress({ ...show, season: 2, episode: 1, position: 0, duration: 0 })
     recordPlayback(show, { season: 2, episode: 1 }, at(5))
     expect(getProgress('tv', '1399')).toMatchObject({ season: 2, episode: 1, position: 5, duration: 3600 })
+  })
+})
+
+describe('watched', () => {
+  it('marks a finished movie or episode as watched', () => {
+    recordPlayback(movie, {}, at(7300, 8000))
+    expect(isWatched('movie-550')).toBe(true)
+    recordPlayback(show, { season: 1, episode: 3 }, at(3500), { season: 1, episode: 4 })
+    expect(isWatched('tv-1399-1-3')).toBe(true)
+  })
+
+  it('moves Continue Watching past an episode marked by hand', () => {
+    saveProgress({ ...show, season: 1, episode: 2, position: 600, duration: 3600 })
+    markWatched(show, { season: 1, episode: 5 }, true, { season: 1, episode: 6 })
+    expect(getProgress('tv', '1399')).toMatchObject({ episode: 2, position: 600 })
+    markWatched(show, { season: 1, episode: 2 }, true, { season: 1, episode: 3 })
+    expect(getProgress('tv', '1399')).toMatchObject({ season: 1, episode: 3, position: 0 })
+    expect(isWatched('tv-1399-1-2')).toBe(true)
+  })
+
+  it('drops a movie marked by hand, and unmarking leaves progress alone', () => {
+    saveProgress({ ...movie, position: 600, duration: 8000 })
+    markWatched(movie, {}, true)
+    expect(getProgress('movie', '550')).toBeUndefined()
+    saveProgress({ ...movie, position: 600, duration: 8000 })
+    markWatched(movie, {}, false)
+    expect(isWatched('movie-550')).toBe(false)
+    expect(getProgress('movie', '550')?.position).toBe(600)
   })
 })
 

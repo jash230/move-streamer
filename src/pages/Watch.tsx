@@ -1,9 +1,10 @@
-import { ArrowLeft, Clock, Play, Star, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, Check, Clock, Eye, Play, Plus, Star, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
 import { getDetails, getEpisodes, img, playbackProgress, sameSite, SERVERS, type MediaType, type Playback, type Season } from '../api'
-import { formatTime, getProgress, isFinished, MIN_WATCHED, recordPlayback } from '../progress'
+import { toggleSaved, useSaved, useWatched, watchedKey } from '../library'
+import { formatTime, getProgress, isFinished, markWatched, MIN_WATCHED, recordPlayback } from '../progress'
 import ServerPicker, { TryNextServer } from '../components/ServerPicker'
 import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
@@ -61,6 +62,8 @@ export default function Watch({ type }: { type: MediaType }) {
   // Read by the player listener when it saves progress, without re-subscribing it.
   const saveFor = useRef({ item, next })
   useEffect(() => { saveFor.current = { item, next } })
+  const inList = useSaved(type, id)
+  const watched = useWatched()
 
   // Where the player opens the episode or movie. Only read when the player (re)loads, so saving
   // progress while it plays doesn't reload it.
@@ -202,6 +205,11 @@ export default function Watch({ type }: { type: MediaType }) {
     )
   }
 
+  const progressTitle = { id, type, title: item.title, poster_path: item.poster_path, backdrop_path: item.backdrop_path, date: item.date }
+  const movieWatched = watchedKey(type, id) in watched
+  const toggleEpisodeWatched = (s: number, e: number) =>
+    markWatched(progressTitle, { season: s, episode: e }, !(watchedKey(type, id, s, e) in watched), nextEpisode(item.seasons, s, e))
+
   const backdrop = img(item.backdrop_path, 'w1280')
   const poster = img(item.poster_path, 'w342')
 
@@ -268,6 +276,16 @@ export default function Watch({ type }: { type: MediaType }) {
               </ul>
             )}
             <p className="overview">{item.overview || 'No description available.'}</p>
+            <div className="title-actions">
+              <button className="btn btn-secondary" onClick={() => toggleSaved(item)} aria-pressed={inList}>
+                {inList ? <Check size={18} aria-hidden="true" /> : <Plus size={18} aria-hidden="true" />} My List
+              </button>
+              {type === 'movie' && (
+                <button className="btn btn-secondary" onClick={() => markWatched(progressTitle, {}, !movieWatched)} aria-pressed={movieWatched}>
+                  {movieWatched ? <Check size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />} {movieWatched ? 'Watched' : 'Mark as watched'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -278,6 +296,8 @@ export default function Watch({ type }: { type: MediaType }) {
             season={season}
             episode={episode}
             autoNext={autoNext}
+            isWatched={(e) => watchedKey(type, id, season, e) in watched}
+            onToggleWatched={(e) => toggleEpisodeWatched(season, e)}
             onToggleAutoNext={toggleAutoNext}
             onSeason={(s) => pickEpisode(s, 1)}
             onEpisode={(e) => { pickEpisode(season, e); setPlaying(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
@@ -294,6 +314,8 @@ function Episodes(props: {
   season: number
   episode: number
   autoNext: boolean
+  isWatched: (e: number) => boolean
+  onToggleWatched: (e: number) => void
   onToggleAutoNext: () => void
   onSeason: (s: number) => void
   onEpisode: (e: number) => void
@@ -320,17 +342,28 @@ function Episodes(props: {
         {loading && Array.from({ length: 4 }, (_, i) => <li key={i} className="ep skeleton ep-skel" />)}
         {episodes?.map((ep) => {
           const active = ep.episode_number === props.episode
+          const seen = props.isWatched(ep.episode_number)
           return (
-            <li key={ep.episode_number}>
+            <li key={ep.episode_number} className={seen ? 'ep-item ep-seen-done' : 'ep-item'}>
               <button className={active ? 'ep active' : 'ep'} onClick={() => props.onEpisode(ep.episode_number)} aria-current={active}>
                 <span className="ep-thumb">
                   {ep.still_path ? <img src={img(ep.still_path, 'w300')} alt="" loading="lazy" width={300} height={169} /> : null}
                   <span className="ep-play" aria-hidden="true"><Play size={18} fill="currentColor" /></span>
+                  {seen && <span className="ep-seen"><Check size={12} aria-hidden="true" /> Watched</span>}
                 </span>
                 <span className="ep-text">
                   <strong>{ep.episode_number}. {ep.name}</strong>
                   <span className="ep-overview">{ep.overview || 'No description.'}</span>
                 </span>
+              </button>
+              <button
+                className="ep-watch"
+                onClick={() => props.onToggleWatched(ep.episode_number)}
+                aria-pressed={seen}
+                aria-label={seen ? `Mark episode ${ep.episode_number} as not watched` : `Mark episode ${ep.episode_number} as watched`}
+                title={seen ? 'Watched' : 'Mark as watched'}
+              >
+                {seen ? <Check size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
               </button>
             </li>
           )

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { MediaType, Playback } from './api'
+import { setWatched, watchedKey } from './library'
 
 // Where each started title was left, kept in this browser only.
 export interface Progress {
@@ -80,6 +81,7 @@ export function recordPlayback(
   next?: { season: number; episode: number },
 ) {
   if (isFinished(playback)) {
+    setWatched(watchedKey(title.type, title.id, at.season, at.episode), true)
     if (next) saveProgress({ ...title, ...next, position: 0, duration: 0 })
     else removeProgress(title.type, title.id)
     return
@@ -87,6 +89,17 @@ export function recordPlayback(
   if (playback.duration <= 0) return
   if (playback.watched < MIN_WATCHED && !getProgress(title.type, title.id)) return
   saveProgress({ ...title, season: at.season, episode: at.episode, position: playback.watched, duration: playback.duration })
+}
+
+// Marking a movie or episode watched by hand moves Continue Watching past it, like finishing it would.
+// Unmarking only clears the mark.
+export function markWatched(title: Title, at: { season?: number; episode?: number }, on: boolean, next?: { season: number; episode: number }) {
+  setWatched(watchedKey(title.type, title.id, at.season, at.episode), on)
+  const saved = getProgress(title.type, title.id)
+  if (!on || !saved) return
+  if (title.type === 'tv' && (saved.season !== at.season || saved.episode !== at.episode)) return
+  if (next) saveProgress({ ...title, ...next, position: 0, duration: 0 })
+  else removeProgress(title.type, title.id)
 }
 
 // Other tabs saving progress show up here too.

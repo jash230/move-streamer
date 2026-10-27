@@ -294,6 +294,7 @@ main { position: relative; min-height: 70dvh; }
 .sp-next:hover { color: var(--text); background: var(--surface-2); }
 .sp-next:active svg { transform: rotate(90deg); }
 .sp-next svg { transition: transform var(--dur) var(--ease); }
+.subs-hint { margin: 10px 0 0; font-size: 0.875rem; color: var(--text-muted); }
 @media (max-width: 640px) {
   .pickers { align-items: stretch; }
   .picker { flex: 1 1 100%; }

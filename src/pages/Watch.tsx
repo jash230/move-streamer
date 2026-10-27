@@ -2,10 +2,11 @@ import { ArrowLeft, Check, Clock, Eye, Play, Plus, Star, TriangleAlert } from 'l
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
-import { getDetails, getEpisodes, img, playbackProgress, sameSite, SERVERS, type MediaType, type Playback, type Season } from '../api'
+import { getDetails, getEpisodes, img, playbackProgress, sameSite, SERVERS, type MediaType, type Playback, type Season, type SubLang } from '../api'
 import { toggleSaved, useSaved, useWatched, watchedKey } from '../library'
 import { formatTime, getProgress, isFinished, markWatched, MIN_WATCHED, recordPlayback } from '../progress'
-import ServerPicker, { TryNextServer } from '../components/ServerPicker'
+import ServerPicker, { serverLabel, TryNextServer } from '../components/ServerPicker'
+import SubtitlePicker from '../components/SubtitlePicker'
 import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
 import { useAsync } from '../useAsync'
@@ -15,9 +16,15 @@ const SERVER_KEY = 'streambox.server.v2'
 // Seconds before the end of an episode that the Up next countdown starts.
 const UP_NEXT_AT = 10
 const AUTONEXT_KEY = 'streambox.autonext'
+const SUBS_KEY = 'streambox.subs'
 
 function loadAutoNext() {
   try { return localStorage.getItem(AUTONEXT_KEY) !== '0' } catch { return true }
+}
+
+// Hebrew unless the viewer picked English.
+function loadSubs(): SubLang {
+  try { return localStorage.getItem(SUBS_KEY) === 'en' ? 'en' : 'he' } catch { return 'he' }
 }
 
 // The episode after the current one, rolling into the next season when this one is done.
@@ -50,6 +57,7 @@ export default function Watch({ type }: { type: MediaType }) {
   const [serverId, setServerId] = useState(loadServer)
   const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0]
   const [autoNext, setAutoNext] = useState(loadAutoNext)
+  const [subs, setSubs] = useState(loadSubs)
   // Up next shows this many seconds before the end, so the next episode starts as this one finishes.
   const [ended, setEnded] = useState(false)
   const [upNextIn, setUpNextIn] = useState(UP_NEXT_AT)
@@ -72,12 +80,12 @@ export default function Watch({ type }: { type: MediaType }) {
     if (!saved || saved.position < MIN_WATCHED) return undefined
     if (type === 'tv' && (saved.season !== frame.season || saved.episode !== frame.episode)) return undefined
     return saved.position
-  }, [type, id, frame.season, frame.episode, server.id, playing]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [type, id, frame.season, frame.episode, server.id, subs, playing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => setEnded(false), [season, episode, serverId])
 
   const title = item?.title
-  const playProps = { id, mt: type, title, s: type === 'tv' ? season : undefined, e: type === 'tv' ? episode : undefined, server: serverId }
+  const playProps = { id, mt: type, title, s: type === 'tv' ? season : undefined, e: type === 'tv' ? episode : undefined, server: serverId, subs }
   useEffect(() => {
     if (title) track('title_view', { id, mt: type, title })
   }, [id, type, title])
@@ -186,6 +194,13 @@ export default function Watch({ type }: { type: MediaType }) {
     try { localStorage.setItem(SERVER_KEY, sid) } catch { /* ignore */ }
   }
 
+  // Reloads the player on servers that take a subtitle language, resuming where it was.
+  const pickSubs = (lang: SubLang) => {
+    setFrameAt(null)
+    setSubs(lang)
+    try { localStorage.setItem(SUBS_KEY, lang) } catch { /* ignore */ }
+  }
+
   if (loading) {
     return (
       <div className="watch">
@@ -224,8 +239,8 @@ export default function Watch({ type }: { type: MediaType }) {
           {playing ? (
             <iframe
               ref={frameRef}
-              key={`${server.id}-${frame.season}-${frame.episode}`}
-              src={server.url(type, id, frame.season, frame.episode, resumeAt)}
+              key={`${server.id}-${frame.season}-${frame.episode}${server.subtitles ? `-${subs}` : ''}`}
+              src={server.url(type, id, frame.season, frame.episode, resumeAt, subs)}
               // `*`, not the default 'src': some servers redirect to another domain (vidsrc-embed.ru →
               // vidsrc.sh), which would otherwise lose fullscreen and autoplay.
               allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
@@ -258,7 +273,13 @@ export default function Watch({ type }: { type: MediaType }) {
         <div className="pickers">
           <ServerPicker value={server} onChange={pickServer} />
           <TryNextServer value={server} onChange={(sid) => pickServer(sid, 'try_next')} />
+          <SubtitlePicker value={subs} onChange={pickSubs} />
         </div>
+        {!server.subtitles && (
+          <p className="subs-hint">
+            {serverLabel(server)} can't turn on subtitles for you. Pick them from the player's CC menu, or use Server 1 or 2.
+          </p>
+        )}
 
         <div className="info">
           {poster && <img className="info-poster" src={poster} alt="" width={160} height={240} />}

@@ -196,12 +196,17 @@ export const discoverByCountry = async (type: MediaType, country: string, sort =
     (r) => normalize(r, type),
   )
 
+// ISO 639-1 codes, as the players take them.
+export type SubLang = 'he' | 'en'
+
 export interface Server {
   id: string
   name: string
   popups: boolean
+  // Whether url() can turn on subtitles in a given language; on the others, viewers pick them in the player.
+  subtitles: boolean
   // `start` is where to resume, in seconds; servers without a start-time parameter ignore it.
-  url: (type: MediaType, id: string, season: number, episode: number, start?: number) => string
+  url: (type: MediaType, id: string, season: number, episode: number, start?: number, subs?: SubLang) => string
   // Switches episodes inside the running player on a postMessage, for players that make every
   // fresh load wait for a click.
   switchEpisode?: (frame: Window, season: number, episode: number) => void
@@ -217,10 +222,12 @@ export const SERVERS: Server[] = [
     id: 'vidsrc',
     name: 'VidSrc',
     popups: true,
-    url: (type, id, s, e) =>
-      type === 'movie'
+    subtitles: true,
+    url: (type, id, s, e, _start, subs) =>
+      (type === 'movie'
         ? `${VIDSRC_BASE}/embed/movie?tmdb=${id}`
-        : `${VIDSRC_BASE}/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+        : `${VIDSRC_BASE}/embed/tv?tmdb=${id}&season=${s}&episode=${e}`) +
+      (subs ? `&ds_lang=${subs}` : ''),
     // A fresh VidSrc load always shows its own play button, so auto-next can't reload it.
     switchEpisode: (frame, season, episode) => frame.postMessage({ type: 'TV_SET', season, episode }, '*'),
   },
@@ -228,13 +235,17 @@ export const SERVERS: Server[] = [
     id: 'vidrock',
     name: 'VidRock',
     popups: false,
-    url: (type, id, s, e) =>
-      type === 'movie' ? `https://vidrock.net/movie/${id}?autoplay=true` : `https://vidrock.net/tv/${id}/${s}/${e}?autoplay=true`,
+    subtitles: true,
+    // Without `lang` VidRock falls back to the browser's language.
+    url: (type, id, s, e, _start, subs) =>
+      (type === 'movie' ? `https://vidrock.net/movie/${id}?autoplay=true` : `https://vidrock.net/tv/${id}/${s}/${e}?autoplay=true`) +
+      (subs ? `&lang=${subs}` : ''),
   },
   {
     id: 'vidzee',
     name: 'VidZee',
     popups: false,
+    subtitles: false,
     url: (type, id, s, e) =>
       type === 'movie' ? `https://player.vidzee.wtf/embed/movie/${id}` : `https://player.vidzee.wtf/embed/tv/${id}/${s}/${e}`,
   },
@@ -242,6 +253,8 @@ export const SERVERS: Server[] = [
     id: 'vidlink',
     name: 'VidLink',
     popups: true,
+    // Only takes a subtitle file URL (sub_file), not a language.
+    subtitles: false,
     url: (type, id, s, e, start) =>
       (type === 'movie'
         ? `https://vidlink.pro/movie/${id}?primaryColor=E11D48&autoplay=true`

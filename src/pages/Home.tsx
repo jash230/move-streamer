@@ -10,9 +10,9 @@ export default function Home() {
     <>
       <Seo
         path="/"
-        description="Cucuflix is a free site to browse and watch movies and TV shows, including Israeli TV, with trending, popular and top rated picks."
+        description="Cucuflix is a free website to watch movies and TV shows online. Stream trending, popular and top rated films and series, plus Israeli TV."
       />
-      <h1 className="sr-only">Cucuflix: watch movies and TV shows online</h1>
+      <h1 className="sr-only">Cucuflix: watch movies and TV shows online for free</h1>
       <Hero load={getTrending} />
       <div className="rows">
         <ContinueWatching />

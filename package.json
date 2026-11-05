@@ -14,6 +14,7 @@
     "@clerk/backend": "^3.23.0",
     "@clerk/react": "^6.17.6",
     "@neondatabase/serverless": "^1.2.0",
+    "@supabase/supabase-js": "^2.119.0",
     "@upstash/redis": "^1.39.0",
     "@vercel/analytics": "^2.0.1",
     "hls.js": "^1.7.3",

@@ -2,7 +2,8 @@ import { useSyncExternalStore } from 'react'
 import type { MediaType, Playback } from './api'
 import { setWatched, watchedKey } from './library'
 
-// Where each started title was left, kept in this browser only.
+// Where each started title was left, kept in this browser. When someone is signed in, src/sync.ts
+// mirrors it to their account.
 export interface Progress {
   id: string
   type: MediaType
@@ -113,6 +114,9 @@ function subscribe(listener: () => void) {
     if (!listeners.size) window.removeEventListener('storage', onStorage)
   }
 }
+
+// Raw access for src/sync.ts.
+export const progressStore = { get: read, write, subscribe }
 
 export const useContinueWatching = () => useSyncExternalStore(subscribe, listProgress, () => [])
 

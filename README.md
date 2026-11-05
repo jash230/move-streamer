@@ -15,6 +15,20 @@ npm run dev
 
 Get a TMDB key at https://www.themoviedb.org/settings/api.
 
+## Viewer accounts (Supabase)
+
+Signed-out viewers keep Continue Watching, My List and watched episodes in their browser, as before. Signing in (email + password) saves them to the viewer's account, so pause points and the saved list follow them to any device. The first sign-in folds the browser's signed-out history into the account; signing out clears it from that browser. Code: `src/auth.ts` (sign-in), `src/sync.ts` (mirroring the local stores to Supabase), `src/components/AccountDialog.tsx`.
+
+One-time setup:
+
+1. **Project.** Create a free project at [supabase.com](https://supabase.com/dashboard).
+2. **Tables.** Open *SQL Editor*, paste `supabase/migrations/0001_accounts.sql` and run it (or `supabase link` then `supabase db push`). It creates `progress`, `my_list` and `watched` with row-level security, so each viewer can only read and change their own rows.
+3. **Auth URLs.** *Authentication → URL Configuration*: set **Site URL** to your production URL and add `http://localhost:5173` plus your Vercel domains (e.g. `https://*.vercel.app`) under **Redirect URLs**. Confirmation and password-reset emails link back here.
+4. **Email confirmation.** On by default: new viewers confirm their email before their first sign-in. To skip it, turn off *Authentication → Sign In / Providers → Email → Confirm email*. Supabase's built-in mailer sends only a few emails per hour; for real traffic add your own SMTP under *Authentication → Emails*.
+5. **Keys.** *Project Settings → API*: copy the project URL and the anon (publishable) key into `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` and in the Vercel project's environment variables, then redeploy.
+
+Without those two keys the site runs as before and the sign-in button is hidden.
+
 ## Admin dashboard (`/admin`)
 
 A private dashboard with live visitors, page views, bounce rate, locations, devices, sources, retention, what people watch and search, server reliability, each visit's step-by-step journey, and reviews. All data is collected by the site itself (`src/analytics.ts` → `/api/e`) and stored in Postgres. Design notes: `docs/superpowers/specs/2026-10-06-admin-crm-design.md`.

@@ -1,7 +1,8 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import type { Media, MediaType } from './api'
 
-// Titles saved for later and what's been watched, kept in this browser only (like progress.ts).
+// Titles saved for later and what's been watched, kept in this browser. When someone is signed in,
+// src/sync.ts mirrors these stores to their account (like progress.ts).
 
 function localStore<T>(key: string) {
   const EMPTY: Record<string, T> = {}
@@ -34,8 +35,10 @@ function localStore<T>(key: string) {
     }
   }
   const use = () => useSyncExternalStore(subscribe, get, () => EMPTY)
-  return { get, write, use }
+  return { get, write, subscribe, use }
 }
+
+export type LocalStore<T> = Pick<ReturnType<typeof localStore<T>>, 'get' | 'write' | 'subscribe'>
 
 const keyOf = (type: MediaType, id: string | number) => `${type}-${id}`
 
@@ -44,6 +47,7 @@ const keyOf = (type: MediaType, id: string | number) => `${type}-${id}`
 export interface Saved extends Media { addedAt: number }
 
 const list = localStore<Saved>('cucuflix.list.v1')
+export const listStore: LocalStore<Saved> = list
 
 const newestFirst = (all: Record<string, Saved>) => Object.values(all).sort((a, b) => b.addedAt - a.addedAt)
 
@@ -75,6 +79,7 @@ export function useSaved(type: MediaType, id: string | number) {
 
 // Movies are `movie-550`, episodes `tv-1399-1-2`; the value is when it was marked.
 const watched = localStore<number>('cucuflix.watched.v1')
+export const watchedStore: LocalStore<number> = watched
 
 export const watchedKey = (type: MediaType, id: string | number, season?: number, episode?: number) =>
   type === 'tv' && season !== undefined ? `${keyOf(type, id)}-${season}-${episode}` : keyOf(type, id)

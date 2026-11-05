@@ -7,7 +7,15 @@
       "destination": "/index.html"
     },
     {
-      "source": "/(movies|tv|israel|search|my-list)",
+      "source": "/movies",
+      "destination": "/movies.html"
+    },
+    {
+      "source": "/tv",
+      "destination": "/tv.html"
+    },
+    {
+      "source": "/(israel|search|my-list)",
       "destination": "/index.html"
     },
     {

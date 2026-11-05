@@ -212,12 +212,24 @@ export interface Server {
   switchEpisode?: (frame: Window, season: number, episode: number) => void
 }
 
-// Embed players, each a separate source, ordered by how reliably they played in a real-browser
-// test on 2026-10-06 (Inception, The Dark Knight, Breaking Bad, Friends). Dropped: Videasy, VidFast,
-// SuperEmbed, 2Embed, VidSrc.to and others that played none of them, and VidSrc mirrors that
-// duplicate Server 1. Third-party players refuse to run in a sandboxed iframe, so pop-ups can't
+// Embed players, each a separate source. frameXTV is first, so it is the default; the rest are
+// ordered by how reliably they played in a real-browser test on 2026-10-06 (Inception, The Dark
+// Knight, Breaking Bad, Friends). Dropped: Videasy, VidFast, SuperEmbed, 2Embed, VidSrc.to and
+// others that played none of them, and VidSrc mirrors that duplicate it. Third-party players refuse to run in a sandboxed iframe, so pop-ups can't
 // be blocked from our side.
 export const SERVERS: Server[] = [
+  {
+    // Docs: https://framextv.cc/api
+    id: 'framex',
+    name: 'frameXTV',
+    popups: true,
+    // Picks subtitles inside the player; the URL takes no language.
+    subtitles: false,
+    url: (type, id, s, e, start) =>
+      (type === 'movie' ? `https://framextv.cc/embed/${id}` : `https://framextv.cc/embed/${id}/${s}/${e}`) +
+      '?autoplay=1&muted=0' +
+      (start ? `&start=${Math.floor(start)}` : ''),
+  },
   {
     id: 'vidsrc',
     name: 'VidSrc',
@@ -260,18 +272,6 @@ export const SERVERS: Server[] = [
         ? `https://vidlink.pro/movie/${id}?primaryColor=E11D48&autoplay=true`
         : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true&autoplay=true`) +
       (start ? `&startAt=${Math.floor(start)}` : ''),
-  },
-  {
-    // Docs: https://framextv.cc/api
-    id: 'framex',
-    name: 'frameXTV',
-    popups: true,
-    // Picks subtitles inside the player; the URL takes no language.
-    subtitles: false,
-    url: (type, id, s, e, start) =>
-      (type === 'movie' ? `https://framextv.cc/embed/${id}` : `https://framextv.cc/embed/${id}/${s}/${e}`) +
-      '?autoplay=1&muted=0' +
-      (start ? `&start=${Math.floor(start)}` : ''),
   },
 ]
 

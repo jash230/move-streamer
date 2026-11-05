@@ -2,7 +2,7 @@ import { RotateCw, ShieldCheck } from 'lucide-react'
 import { SERVERS, type Server } from '../api'
 import Dropdown from './Dropdown'
 
-// Shown as numbers, not provider names; numbering follows SERVERS (most reliable first).
+// Shown as numbers, not provider names; numbering follows SERVERS (the first is the default).
 const GROUPS = [{ label: 'Servers', items: SERVERS }]
 export const serverLabel = (s: Server) => `Server ${SERVERS.indexOf(s) + 1}`
 

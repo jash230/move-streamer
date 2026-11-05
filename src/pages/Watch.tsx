@@ -37,6 +37,9 @@ function nextEpisode(seasons: Season[] | undefined, season: number, episode: num
   return following ? { season: following.season_number, episode: 1 } : undefined
 }
 
+// "Server 2 or 3": the servers that can turn subtitles on, so the hint follows the SERVERS order.
+const SUBTITLE_SERVERS = SERVERS.filter((s) => s.subtitles).map(serverLabel).join(' or ')
+
 function loadServer() {
   try {
     const saved = localStorage.getItem(SERVER_KEY)
@@ -277,7 +280,7 @@ export default function Watch({ type }: { type: MediaType }) {
         </div>
         {!server.subtitles && (
           <p className="subs-hint">
-            {serverLabel(server)} can't turn on subtitles for you. Pick them from the player's CC menu, or use Server 1 or 2.
+            {serverLabel(server)} can't turn on subtitles for you. Pick them from the player's CC menu, or use {SUBTITLE_SERVERS}.
           </p>
         )}
 

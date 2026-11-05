@@ -105,3 +105,17 @@ describe('subtitles', () => {
     expect(SERVERS.filter((s) => s.subtitles).map((s) => s.id)).toEqual(['vidsrc', 'vidrock'])
   })
 })
+
+describe('frameXTV', () => {
+  const framex = SERVERS.find((s) => s.id === 'framex')!
+
+  it('reads its timeupdate and ended events', () => {
+    expect(playbackProgress({ event: 'frameXTV:timeupdate', currentTime: 600, duration: 3697 }, ep)).toEqual({ watched: 600, duration: 3697 })
+    expect(playbackProgress({ event: 'frameXTV:ended' }, ep)).toMatchObject({ ended: true })
+  })
+
+  it('builds embed URLs that resume where the viewer left off', () => {
+    expect(framex.url('movie', '27205', 1, 1, 120.7)).toBe('https://framextv.cc/embed/27205?autoplay=1&muted=0&start=120')
+    expect(framex.url('tv', '1396', 2, 3)).toBe('https://framextv.cc/embed/1396/2/3?autoplay=1&muted=0')
+  })
+})

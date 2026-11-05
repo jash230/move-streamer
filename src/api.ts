@@ -261,6 +261,18 @@ export const SERVERS: Server[] = [
         : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true&autoplay=true`) +
       (start ? `&startAt=${Math.floor(start)}` : ''),
   },
+  {
+    // Docs: https://framextv.cc/api
+    id: 'framex',
+    name: 'frameXTV',
+    popups: true,
+    // Picks subtitles inside the player; the URL takes no language.
+    subtitles: false,
+    url: (type, id, s, e, start) =>
+      (type === 'movie' ? `https://framextv.cc/embed/${id}` : `https://framextv.cc/embed/${id}/${s}/${e}`) +
+      '?autoplay=1&muted=0' +
+      (start ? `&start=${Math.floor(start)}` : ''),
+  },
 ]
 
 export interface PlaybackTarget { id: string; season?: number; episode?: number }
@@ -275,6 +287,7 @@ const measured = (watched: unknown, duration: unknown): Playback | null =>
 // - VidRock / VidZee / VidLink: { type: 'MEDIA_DATA', data } with data an array or an id-keyed object of saved
 //   titles, each with show_progress['s1e2'].progress (TV) or progress (movies) as { watched, duration }.
 //   That's the player's whole watch history, so only the entry for the title and episode on screen counts.
+// - frameXTV: { event: 'frameXTV:timeupdate', currentTime, duration } and { event: 'frameXTV:ended' }.
 // - Others: { data: { event: 'ended' } } or { currentTime, duration }.
 // Returns how far along the title on screen is (duration 0 while playing with no known length), or null
 // when the message isn't about it.
@@ -304,7 +317,7 @@ export function playbackProgress(raw: unknown, want: PlaybackTarget): Playback |
   if (typeof status === 'string') return reported ?? { watched: 0, duration: 0 }
 
   const event = m.data?.event ?? m.event
-  if (event === 'ended' || event === 'complete') return { watched: 0, duration: 0, ended: true }
+  if (event === 'ended' || event === 'complete' || event === 'frameXTV:ended') return { watched: 0, duration: 0, ended: true }
   return measured(m.data?.currentTime ?? m.currentTime ?? m.timestamp, m.data?.duration ?? m.duration)
 }
 

@@ -134,7 +134,7 @@ function operation(path: string, method: string, op: Operation, origin: string) 
 ${params.length ? `<h3>Query parameters</h3>${table(params.map((p) => row(p.name, !!p.required, p.schema, p.description)))}` : ''}
 ${examples.length ? `<h3>Examples</h3><ul>${examples.join('')}</ul>` : ''}
 ${body ? `<h3>JSON body</h3>${table(Object.entries(body.properties).map(([k, s]) => row(k, !!body.required?.includes(k), s)))}` : ''}
-<h3>Responses</h3><ul>${Object.entries(op.responses).map(([code, r]) => `<li><code>${code}</code> ${esc(r.description)}</li>`).join('')}</ul>
+<h3>Responses</h3><ul>${Object.entries(op.responses).map(([code, r]) => `<li><code>${code}</code> ${md(r.description)}</li>`).join('')}</ul>
 </section>`
 }
 

@@ -13,6 +13,8 @@ function devApi(): Plugin {
       for (const [k, v] of Object.entries(env)) process.env[k] ??= v
 
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next) => {
+        // Mirrors the /docs rewrite in vercel.json.
+        if (/^\/docs\/?(?:\?|$)/.test(req.url ?? '')) req.url = '/api/docs?format=html'
         const match = /^\/api\/([a-z]+)(?:[?/]|$)/.exec(req.url ?? '')
         if (!match) return next()
         try {

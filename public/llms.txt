@@ -19,7 +19,8 @@ Every movie and show has its own page with several player servers to choose from
 
 ## API
 
-- [API docs (OpenAPI 3.1)](https://cucuflix.online/api/docs): public endpoints, including a read-only TMDB catalog proxy at `/api/tmdb` for looking up titles and their IDs
+- [API docs](https://cucuflix.online/docs): readable reference for the public endpoints
+- [OpenAPI 3.1 spec](https://cucuflix.online/api/docs): public endpoints, including a read-only TMDB catalog proxy at `/api/tmdb` for looking up titles and their IDs
 
 ## Optional
 

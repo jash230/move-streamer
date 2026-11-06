@@ -25,6 +25,10 @@
     {
       "source": "/admin/:path*",
       "destination": "/index.html"
+    },
+    {
+      "source": "/docs",
+      "destination": "/api/docs?format=html"
     }
   ],
   "headers": [

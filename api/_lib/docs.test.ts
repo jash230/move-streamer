@@ -17,3 +17,15 @@ describe('api docs', () => {
     expect(props.name.maxLength).toBe(60)
   })
 })
+
+describe('readable docs', () => {
+  it('renders every endpoint as HTML and escapes spec text', async () => {
+    const res = GET(new Request('https://cucuflix.online/api/docs?format=html'))
+    expect(res.headers.get('content-type')).toContain('text/html')
+    const page = await res.text()
+    expect(page).toContain('<code>/api/tmdb</code>')
+    expect(page).toContain('<code>/api/reviews</code>')
+    expect(page).toContain('href="https://cucuflix.online/api/tmdb?path=%2Fmovie%2F550"')
+    expect(page).not.toMatch(/<script/i)
+  })
+})

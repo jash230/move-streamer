@@ -4,3 +4,4 @@ Allow: /
 Sitemap: https://cucuflix.online/sitemap.xml
 
 # LLM summary: https://cucuflix.online/llms.txt
+# API docs (OpenAPI): https://cucuflix.online/api/docs

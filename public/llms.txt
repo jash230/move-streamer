@@ -17,6 +17,10 @@ Every movie and show has its own page with several player servers to choose from
 - Movie: `https://cucuflix.online/movie/{tmdb_id}`, using the TMDB movie ID (for example https://cucuflix.online/movie/550)
 - TV show: `https://cucuflix.online/tv/{tmdb_id}`, using the TMDB TV ID (for example https://cucuflix.online/tv/1399)
 
+## API
+
+- [API docs (OpenAPI 3.1)](https://cucuflix.online/api/docs): public endpoints, including a read-only TMDB catalog proxy at `/api/tmdb` for looking up titles and their IDs
+
 ## Optional
 
 - [Sitemap](https://cucuflix.online/sitemap.xml)

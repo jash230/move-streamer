@@ -1,0 +1,22 @@
+# Cucuflix
+
+> Cucuflix is a free website to watch movies and TV shows online. Stream trending, popular and top rated films and series, plus Israeli TV, in the browser with no download and no sign-up required.
+
+Every movie and show has its own page with several player servers to choose from, Hebrew subtitles where available, and season and episode selection for series. Continue Watching, a personal "My List" and watched marks work without an account; signing in is optional and syncs them across devices.
+
+## Main pages
+
+- [Home](https://cucuflix.online/): trending, popular and top rated movies and TV shows
+- [Movies](https://cucuflix.online/movies): now playing, popular, top rated and upcoming movies
+- [TV Shows](https://cucuflix.online/tv): popular, top rated and airing-today series, with full seasons and episodes
+- [Israeli TV](https://cucuflix.online/israel): Israeli series and shows
+- [Search](https://cucuflix.online/search?q=): search any movie or TV show by title
+
+## Title pages
+
+- Movie: `https://cucuflix.online/movie/{tmdb_id}`, using the TMDB movie ID (for example https://cucuflix.online/movie/550)
+- TV show: `https://cucuflix.online/tv/{tmdb_id}`, using the TMDB TV ID (for example https://cucuflix.online/tv/1399)
+
+## Optional
+
+- [Sitemap](https://cucuflix.online/sitemap.xml)

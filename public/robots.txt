@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 
 Sitemap: https://cucuflix.online/sitemap.xml
+
+# LLM summary: https://cucuflix.online/llms.txt

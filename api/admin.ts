@@ -94,7 +94,41 @@ async function traffic(r: Range, now: Date): Promise<VercelTraffic | { note: str
   }
 }
 
+// Viewer accounts live in Supabase Auth, not in Neon. Reading them needs the server-only service key.
+async function accountDates(): Promise<string[] | { note: string }> {
+  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return { note: 'Supabase is not connected for the dashboard (SUPABASE_SERVICE_ROLE_KEY is not set), so sign-ups can\'t be counted yet.' }
+  const dates: string[] = []
+  for (let page = 1; ; page++) {
+    const res = await fetch(`${url}/auth/v1/admin/users?page=${page}&per_page=1000`, { headers: { apikey: key, Authorization: `Bearer ${key}` } })
+    if (!res.ok) return { note: `Couldn't read accounts from Supabase (${res.status}), so sign-ups aren't shown.` }
+    const { users } = (await res.json()) as { users: { created_at: string }[] }
+    dates.push(...users.map((u) => u.created_at))
+    if (users.length < 1000) return dates
+  }
+}
+
 const REPORTS: Record<string, (c: Ctx) => Promise<unknown>> = {
+  async signups({ sql, r }) {
+    const dates = await accountDates()
+    if (!Array.isArray(dates)) return { total: null, series: [], note: dates.note }
+    // Bucket in Postgres so days line up exactly with the traffic chart.
+    const series = await sql`
+      WITH buckets AS (
+        SELECT generate_series(
+          date_trunc(${r.unit}, ${r.from}::timestamptz AT TIME ZONE ${TZ}),
+          date_trunc(${r.unit}, ${r.to}::timestamptz AT TIME ZONE ${TZ}),
+          ('1 ' || ${r.unit})::interval) AS b
+      ), u AS (
+        SELECT date_trunc(${r.unit}, at AT TIME ZONE ${TZ}) AS b, count(*)::int AS signups
+        FROM unnest(${dates}::timestamptz[]) AS at WHERE at >= ${r.from} AND at < ${r.to} GROUP BY 1
+      )
+      SELECT to_char(buckets.b, 'YYYY-MM-DD"T"HH24:MI') AS t, coalesce(u.signups, 0) AS signups
+      FROM buckets LEFT JOIN u USING (b) ORDER BY 1`
+    return { total: series.reduce((s, p) => s + (p.signups as number), 0), allTime: dates.length, series }
+  },
+
   async live({ sql }) {
     const rows = await sql`
       SELECT s.country, s.city, s.device, e.type, e.path, e.props->>'title' AS title
@@ -127,7 +161,9 @@ const REPORTS: Record<string, (c: Ctx) => Promise<unknown>> = {
     const plays = new Map(series.map((p) => [p.t as string, p.plays as number]))
     return {
       current: { ...current, ...vercel.current },
-      previous: previous && vercel.previous ? { ...previous, ...vercel.previous } : r.unit === 'hour' ? null : previous,
+      // Without Vercel's previous period, drop visitors/page views from the comparison rather than
+      // comparing Vercel's count against our own (they count differently, so the % would be wrong).
+      previous: previous && vercel.previous ? { ...previous, ...vercel.previous } : r.unit === 'hour' || !previous ? null : { ...previous, visitors: null, pageviews: null },
       unit: r.unit,
       series: vercel.series.map((p) => ({ ...p, plays: plays.get(p.t) ?? 0 })),
       countries: vercel.countries.slice(0, 6),
@@ -173,7 +209,7 @@ const REPORTS: Record<string, (c: Ctx) => Promise<unknown>> = {
     ])
     const vercel = await traffic(r, now)
     const countries = 'current' in vercel ? vercel.countries : ownCountries
-    return { countries, cities: topCities, devices, browsers, systems, sources, campaigns, split, retention, source: 'current' in vercel ? 'vercel' : 'cucuflix' }
+    return { countries, cities: topCities, devices, browsers, systems, sources, campaigns, split, retention, source: 'current' in vercel ? 'vercel' : 'cucuflix', coveredDays: 'current' in vercel ? vercel.coveredDays : null }
   },
 
   async watching({ sql, r }) {

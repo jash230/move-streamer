@@ -32,12 +32,12 @@ const appearance = {
 }
 
 const NAV = [
-  { to: '/admin', label: 'Overview', icon: Gauge, end: true },
-  { to: '/admin/audience', label: 'Audience', icon: Users },
-  { to: '/admin/watching', label: 'Watching', icon: Clapperboard },
-  { to: '/admin/playback', label: 'Playback', icon: Activity },
-  { to: '/admin/visitors', label: 'Visitors', icon: Footprints },
-  { to: '/admin/reviews', label: 'Reviews', icon: MessageSquareText },
+  { to: '/yardenos', label: 'Overview', icon: Gauge, end: true },
+  { to: '/yardenos/audience', label: 'Audience', icon: Users },
+  { to: '/yardenos/watching', label: 'Watching', icon: Clapperboard },
+  { to: '/yardenos/playback', label: 'Playback', icon: Activity },
+  { to: '/yardenos/visitors', label: 'Visitors', icon: Footprints },
+  { to: '/yardenos/reviews', label: 'Reviews', icon: MessageSquareText },
 ]
 
 export default function AdminApp() {
@@ -53,7 +53,7 @@ export default function AdminApp() {
     )
   }
   return (
-    <ClerkProvider publishableKey={KEY} afterSignOutUrl="/admin" signInFallbackRedirectUrl="/admin" signUpFallbackRedirectUrl="/admin" appearance={appearance}>
+    <ClerkProvider publishableKey={KEY} afterSignOutUrl="/yardenos" signInFallbackRedirectUrl="/yardenos" signUpFallbackRedirectUrl="/yardenos" appearance={appearance}>
       <Seo title="Admin" noindex />
       <ClerkLoading>
         <div className="adm adm-center"><span className="booth-light" aria-label="Loading" /></div>
@@ -62,7 +62,7 @@ export default function AdminApp() {
         <div className="adm adm-center">
           <div className="signin">
             <p className="signin-brand">Cucuflix booth</p>
-            <SignIn routing="hash" forceRedirectUrl="/admin" signUpForceRedirectUrl="/admin" />
+            <SignIn routing="hash" forceRedirectUrl="/yardenos" signUpForceRedirectUrl="/yardenos" />
           </div>
         </div>
       </Show>
@@ -84,7 +84,7 @@ function Shell() {
     next.delete('before')
     setParams(next, { replace: true })
   }
-  const journey = /^\/admin\/visitors\/./.test(pathname)
+  const journey = /^\/yardenos\/visitors\/./.test(pathname)
   const here = NAV.find((n) => (n.end ? pathname.replace(/\/$/, '') === n.to : pathname.startsWith(n.to))) ?? NAV[0]
 
   return (

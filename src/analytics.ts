@@ -1,4 +1,4 @@
-// First-party analytics for the /admin dashboard. Events are queued and sent in small batches to
+// First-party analytics for the /yardenos dashboard. Events are queued and sent in small batches to
 // /api/e; nothing personal is collected — just a random visitor ID kept in this browser.
 type EventType = 'page_view' | 'title_view' | 'play_start' | 'play_finish' | 'server_switch' | 'search' | 'heartbeat'
 type Props = Record<string, string | number | boolean | undefined>
@@ -12,7 +12,7 @@ const ENDPOINT = '/api/e'
 
 // The dev server has no /api, and the admin's own browsing shouldn't count as traffic.
 const enabled = () =>
-  typeof window !== 'undefined' && (!import.meta.env.DEV || import.meta.env.VITE_TRACK_DEV === '1') && !location.pathname.startsWith('/admin')
+  typeof window !== 'undefined' && (!import.meta.env.DEV || import.meta.env.VITE_TRACK_DEV === '1') && !location.pathname.startsWith('/yardenos')
 
 const randomId = () => crypto.randomUUID().replace(/-/g, '')
 

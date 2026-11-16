@@ -52,7 +52,8 @@ export interface Live {
 
 export interface Overview {
   current: Stats
-  previous: Stats | null
+  // visitors/pageviews are null when only Vercel has the current period, so there's nothing fair to compare.
+  previous: (Omit<Stats, 'visitors' | 'pageviews'> & { visitors: number | null; pageviews: number | null }) | null
   unit: 'hour' | 'day'
   series: Point[]
   countries: Row[]
@@ -74,6 +75,14 @@ export interface Audience {
   split: { new: number; returning: number }
   retention: { cohort: number; day1: number; day7: number; day30: number }
   source: 'vercel' | 'cucuflix'
+  coveredDays: number | null
+}
+
+export interface Signups {
+  total: number | null
+  allTime?: number
+  series: { t: string; signups: number }[]
+  note?: string
 }
 
 export interface TitleRow {

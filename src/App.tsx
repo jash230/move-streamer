@@ -13,7 +13,7 @@ import Search from './pages/Search'
 import Watch from './pages/Watch'
 import NotFound from './pages/NotFound'
 
-// The dashboard (and Clerk) load only when someone opens /admin.
+// The dashboard (and Clerk) load only when someone opens /yardenos.
 const AdminApp = lazy(() => import('./admin/AdminApp'))
 
 function ScrollToTop() {
@@ -35,7 +35,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/admin/*" element={<Suspense fallback={null}><AdminApp /></Suspense>} />
+        <Route path="/yardenos/*" element={<Suspense fallback={null}><AdminApp /></Suspense>} />
         <Route path="*" element={<Site />} />
       </Routes>
     </BrowserRouter>

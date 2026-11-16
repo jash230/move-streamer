@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarList, TrendChart } from '../charts'
 import { ago, country, num, pct, place } from '../format'
-import type { Live, LivePerson, Overview as Data, Point } from '../types'
+import type { Live, LivePerson, Overview as Data, Signups } from '../types'
 import { Card, Kpi, Loaded, Ticker } from '../ui'
 import { useReport } from '../useReport'
 
@@ -14,7 +14,7 @@ const METRICS = [
 ] as const
 
 // Bucket times are UTC (the day boundary Vercel Analytics uses), so label them in UTC too.
-function points(series: Point[], unit: 'hour' | 'day', metric: (typeof METRICS)[number]['key']) {
+function points<K extends string>(series: ({ t: string } & Record<K, number>)[], unit: 'hour' | 'day', metric: K) {
   return series.map((p) => {
     const d = new Date(`${p.t}:00Z`)
     const opts = { timeZone: 'UTC' } as const
@@ -65,6 +65,20 @@ function LiveCard() {
   )
 }
 
+function SignupsCard({ unit }: { unit: 'hour' | 'day' }) {
+  const s = useReport<Signups>('signups')
+  return (
+    <Card className="wide" title="Sign-ups"
+      info={`Accounts created on Cucuflix, read straight from Supabase. ${unit === 'hour' ? 'Per hour today' : 'Per day'}, UTC.`}
+      action={s.data?.total != null && <span className="panel-meta">{num(s.data.total)} in this period · {num(s.data.allTime ?? 0)} all time</span>}>
+      {s.error && !s.data ? <p className="error">{s.error}</p>
+        : !s.data ? <div className="trend" style={{ height: 220 }} />
+        : s.data.note ? <p className="notice">{s.data.note}</p>
+        : <TrendChart points={points(s.data.series, unit, 'signups')} name="Sign-ups" unit={unit} />}
+    </Card>
+  )
+}
+
 export default function Overview() {
   const state = useReport<Data>('overview')
   const [metric, setMetric] = useState<(typeof METRICS)[number]['key']>('visitors')
@@ -107,15 +121,17 @@ export default function Overview() {
               <TrendChart points={points(d.series, d.unit, metric)} name={METRICS.find((m) => m.key === metric)!.label} unit={d.unit} />
             </Card>
 
+            <SignupsCard unit={d.unit} />
+
             <div className="trio">
               <Card title="Top countries" info={d.source === 'vercel' ? fromVercel : 'By number of people.'}
-                action={<Link className="panel-link" to={`/admin/audience${location.search}`}>More</Link>}>
+                action={<Link className="panel-link" to={`/yardenos/audience${location.search}`}>More</Link>}>
                 <BarList items={d.countries.map((r) => ({ key: r.label ?? 'other', label: r.label ? country(r.label) : 'Other countries', value: r.visitors }))} />
               </Card>
               <Card title="Top cities" info="From Cucuflix's own tracking; Vercel doesn't report cities.">
                 <BarList items={d.cities.map((r) => ({ key: `${r.label}-${r.country}`, label: place(r.label, r.country), value: r.visitors }))} />
               </Card>
-              <Card title="Latest reviews" action={<Link className="panel-link" to={`/admin/reviews${location.search}`}>All</Link>}>
+              <Card title="Latest reviews" action={<Link className="panel-link" to={`/yardenos/reviews${location.search}`}>All</Link>}>
                 {d.reviews.length === 0 ? <p className="empty-note">No reviews in this period.</p> : (
                   <ul className="review-list compact">
                     {d.reviews.map((r) => <ReviewItem key={r.id} r={r} />)}

@@ -35,7 +35,7 @@ export default function Journey() {
   const state = useReport<Data>('journey', { session })
   return (
     <>
-      <Link className="back-link" to={`/admin/visitors${location.search}`}><ArrowLeft size={16} aria-hidden="true" /> All visitors</Link>
+      <Link className="back-link" to={`/yardenos/visitors${location.search}`}><ArrowLeft size={16} aria-hidden="true" /> All visitors</Link>
       <Loaded state={state} lines={8}>
         {({ visit: v, steps }) => (
           <>

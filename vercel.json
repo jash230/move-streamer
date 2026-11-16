@@ -23,7 +23,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/admin/:path*",
+      "source": "/yardenos/:path*",
       "destination": "/index.html"
     },
     {
@@ -42,7 +42,7 @@
       ]
     },
     {
-      "source": "/admin/:path*",
+      "source": "/yardenos/:path*",
       "headers": [
         {
           "key": "X-Robots-Tag",

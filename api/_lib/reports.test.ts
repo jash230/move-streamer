@@ -177,6 +177,28 @@ describe('tracker + reports on real Postgres', () => {
     expect((await report('overview')).reviews).toHaveLength(2)
   })
 
+  it('signups: says why when Supabase is not connected, counts per day when it is', async () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+    expect(await report('signups')).toMatchObject({ total: null, series: [], note: expect.stringContaining('SUPABASE_SERVICE_ROLE_KEY') })
+
+    process.env.SUPABASE_URL = 'https://supa.test'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service'
+    const old = new Date(now - 30 * 86_400_000).toISOString()
+    const users = [{ created_at: new Date(now - 1000).toISOString() }, { created_at: new Date(now - 2000).toISOString() }, { created_at: old }]
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ users })))
+    try {
+      const s = await report('signups')
+      expect(fetchMock.mock.calls[0][0]).toBe('https://supa.test/auth/v1/admin/users?page=1&per_page=1000')
+      expect(s.total).toBe(2)
+      expect(s.allTime).toBe(3)
+      expect(s.series).toHaveLength(7)
+      expect(s.series.at(-1).signups).toBe(2)
+    } finally {
+      fetchMock.mockRestore()
+      delete process.env.SUPABASE_SERVICE_ROLE_KEY
+    }
+  })
+
   it('today and all-time ranges work', async () => {
     const res = await admin(new Request('https://cucuflix.test/api/admin?report=overview&range=today'))
     const { data } = await res.json()

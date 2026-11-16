@@ -37,7 +37,7 @@ export default function Visitors() {
                 <tbody>
                   {visits.map((v) => (
                     <tr key={v.id}>
-                      <th scope="row"><Link to={`/admin/visitors/${v.id}${location.search}`}>{dateTime(v.started_at)}</Link></th>
+                      <th scope="row"><Link to={`/yardenos/visitors/${v.id}${location.search}`}>{dateTime(v.started_at)}</Link></th>
                       <td>{place(v.city, v.country)}</td>
                       <td>{[v.device, v.browser].filter(Boolean).join(', ')}</td>
                       <td>{source(v)}</td>

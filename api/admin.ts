@@ -97,11 +97,14 @@ async function traffic(r: Range, now: Date): Promise<VercelTraffic | { note: str
 // Viewer accounts live in Supabase Auth, not in Neon. Reading them needs the server-only service key.
 async function accountDates(): Promise<string[] | { note: string }> {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return { note: 'Supabase is not connected for the dashboard (SUPABASE_SERVICE_ROLE_KEY is not set), so sign-ups can\'t be counted yet.' }
+  // Either a new-style secret key (sb_secret_…) or the legacy service_role JWT.
+  const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return { note: 'Supabase is not connected for the dashboard (add SUPABASE_SECRET_KEY in Vercel), so sign-ups can\'t be counted yet.' }
+  // Only the legacy key is a JWT; new secret keys go in the apikey header alone.
+  const headers: Record<string, string> = key.startsWith('ey') ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key }
   const dates: string[] = []
   for (let page = 1; ; page++) {
-    const res = await fetch(`${url}/auth/v1/admin/users?page=${page}&per_page=1000`, { headers: { apikey: key, Authorization: `Bearer ${key}` } })
+    const res = await fetch(`${url}/auth/v1/admin/users?page=${page}&per_page=1000`, { headers })
     if (!res.ok) return { note: `Couldn't read accounts from Supabase (${res.status}), so sign-ups aren't shown.` }
     const { users } = (await res.json()) as { users: { created_at: string }[] }
     dates.push(...users.map((u) => u.created_at))

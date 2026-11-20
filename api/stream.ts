@@ -2,10 +2,22 @@
 // VidRock's CDNs, so those CDNs only ever see this server's IP, never the viewer's. It also adds
 // the Referer/Origin the CDNs require and rewrites manifests so child URLs come back through here.
 import { error } from './_lib/http.js'
-import { STREAM_ALLOW } from './_lib/stream-hosts.js'
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-export const allowed = (u: URL) => u.protocol === 'https:' && STREAM_ALLOW.some((d) => u.host === d || u.host.endsWith('.' + d))
+
+// VidRock rotates its HLS CDNs constantly (random throwaway domains), so a static host allowlist
+// just breaks titles whenever a new CDN shows up. Instead guard the only thing that matters for
+// SSRF: require https and reject anything that could point at internal infra — IP-literal hosts
+// (metadata endpoints, localhost, private ranges) and internal names. CDNs always use public
+// domain names, so this blocks nothing real.
+// shortcut: hostname-only, so a public domain that resolves to a private IP (DNS rebinding) still
+// gets through; add resolve-then-check if the proxy ever runs somewhere with reachable internal services.
+const internalHost = (h: string) =>
+  h.includes(':') || // IPv6 literal
+  /^(\d+\.){0,3}\d+$/.test(h) || // IPv4 / decimal-int literal
+  /^0x/i.test(h) || // hex-int literal
+  /(^|\.)(localhost|local|internal|lan|corp|home)$/i.test(h)
+export const allowed = (u: URL) => u.protocol === 'https:' && !internalHost(u.hostname)
 
 const proxied = (uri: string, base: string) => `/api/stream?url=${encodeURIComponent(new URL(uri, base).toString())}`
 

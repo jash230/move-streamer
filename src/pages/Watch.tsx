@@ -5,6 +5,7 @@ import { track } from '../analytics'
 import { getDetails, getEpisodes, img, playbackProgress, sameSite, SERVERS, type MediaType, type Playback, type Season, type SubLang } from '../api'
 import { toggleSaved, useSaved, useWatched, watchedKey } from '../library'
 import { formatTime, getProgress, isFinished, markWatched, MIN_WATCHED, recordPlayback } from '../progress'
+import NativePlayer from '../components/NativePlayer'
 import ServerPicker, { serverLabel, TryNextServer } from '../components/ServerPicker'
 import SubtitlePicker from '../components/SubtitlePicker'
 import Seo from '../components/Seo'
@@ -67,6 +68,9 @@ export default function Watch({ type }: { type: MediaType }) {
   // The episode the player iframe was loaded with, while auto-next has switched episodes inside it.
   const [frameAt, setFrameAt] = useState<{ season: number; episode: number } | null>(null)
   const frameRef = useRef<HTMLIFrameElement>(null)
+  // The current episode's playback handler, shared by the iframe postMessage listener and the
+  // native VidRock player so both save progress and trigger Up next the same way.
+  const onPlaybackRef = useRef<(p: Playback) => void>(() => {})
   const switchCheck = useRef<ReturnType<typeof setTimeout>>(undefined)
   const frame = frameAt ?? { season, episode }
   const next = type === 'tv' ? nextEpisode(item?.seasons, season, episode) : undefined
@@ -119,10 +123,7 @@ export default function Watch({ type }: { type: MediaType }) {
       const title = { id, type, title: item.title, poster_path: item.poster_path, backdrop_path: item.backdrop_path, date: item.date }
       recordPlayback(title, want, p, next)
     }
-    const onMessage = (e: MessageEvent) => {
-      if (!sameSite(e.origin, src)) return
-      const p = playbackProgress(e.data, want)
-      if (!p) return
+    const onPlayback = (p: Playback) => {
       const left = p.ended ? 0 : p.duration > 0 ? Math.max(0, p.duration - p.watched) : Infinity
       clearTimeout(switchCheck.current)
       if (left > UP_NEXT_AT) seenPlaying = true
@@ -137,6 +138,12 @@ export default function Watch({ type }: { type: MediaType }) {
         savedAt = Date.now()
         save(p)
       }
+    }
+    onPlaybackRef.current = onPlayback
+    const onMessage = (e: MessageEvent) => {
+      if (!sameSite(e.origin, src)) return
+      const p = playbackProgress(e.data, want)
+      if (p) onPlayback(p)
     }
     const flush = () => { if (last) save(last) }
     const onHidden = () => { if (document.visibilityState === 'hidden') flush() }
@@ -240,6 +247,17 @@ export default function Watch({ type }: { type: MediaType }) {
 
         <div className="player" style={backdrop ? { backgroundImage: `url(${backdrop})` } : undefined}>
           {playing ? (
+            server.id === 'vidrock' ? (
+              <NativePlayer
+                key={`vidrock-${frame.season}-${frame.episode}`}
+                type={type}
+                id={id}
+                season={frame.season}
+                episode={frame.episode}
+                resumeAt={resumeAt}
+                onPlayback={(p) => onPlaybackRef.current(p)}
+              />
+            ) : (
             <iframe
               ref={frameRef}
               key={`${server.id}-${frame.season}-${frame.episode}${server.subtitles ? `-${subs}` : ''}`}
@@ -251,6 +269,7 @@ export default function Watch({ type }: { type: MediaType }) {
               referrerPolicy="origin"
               title={`${item.title} player`}
             />
+            )
           ) : (
             <button className="play" onClick={() => setPlaying(true)}>
               <span className="play-circle"><Play size={34} fill="currentColor" /></span>

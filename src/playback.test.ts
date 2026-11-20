@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { playbackLeft, playbackProgress, SERVERS, type PlaybackTarget } from './api'
+import { playbackLeft, playbackProgress, type PlaybackTarget } from './api'
 
 // Seconds left, bucketed the way the tests read best.
 const playbackState = (raw: unknown, want: PlaybackTarget) => {
@@ -90,32 +90,11 @@ describe('playbackProgress', () => {
   })
 })
 
-describe('subtitles', () => {
-  const server = (id: string) => SERVERS.find((s) => s.id === id)!
-  const lang = (url: string, param: string) => new URL(url).searchParams.get(param)
-
-  it('asks VidSrc and VidRock for the chosen language', () => {
-    expect(lang(server('vidsrc').url('movie', '27205', 1, 1, undefined, 'he'), 'ds_lang')).toBe('he')
-    expect(lang(server('vidsrc').url('tv', '1399', 2, 3, undefined, 'en'), 'ds_lang')).toBe('en')
-    expect(lang(server('vidrock').url('tv', '1399', 2, 3, undefined, 'he'), 'lang')).toBe('he')
-    expect(lang(server('vidrock').url('movie', '27205', 1, 1), 'lang')).toBeNull()
-  })
-
-  it('only claims subtitle support on servers whose url takes a language', () => {
-    expect(SERVERS.filter((s) => s.subtitles).map((s) => s.id)).toEqual(['vidsrc', 'vidrock'])
-  })
-})
-
-describe('frameXTV', () => {
-  const framex = SERVERS.find((s) => s.id === 'framex')!
-
-  it('reads its timeupdate and ended events', () => {
+// playbackProgress still parses the postMessage shapes (kept for the generic parser/tests), even
+// though VidRock now plays natively and reports progress directly.
+describe('generic player events', () => {
+  it('reads frameXTV-style timeupdate and ended events', () => {
     expect(playbackProgress({ event: 'frameXTV:timeupdate', currentTime: 600, duration: 3697 }, ep)).toEqual({ watched: 600, duration: 3697 })
     expect(playbackProgress({ event: 'frameXTV:ended' }, ep)).toMatchObject({ ended: true })
-  })
-
-  it('builds embed URLs that resume where the viewer left off', () => {
-    expect(framex.url('movie', '27205', 1, 1, 120.7)).toBe('https://framextv.cc/embed/27205?autoplay=1&muted=0&start=120')
-    expect(framex.url('tv', '1396', 2, 3)).toBe('https://framextv.cc/embed/1396/2/3?autoplay=1&muted=0')
   })
 })

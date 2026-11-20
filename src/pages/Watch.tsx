@@ -2,30 +2,20 @@ import { ArrowLeft, Check, Clock, Eye, Play, Plus, Star, TriangleAlert } from 'l
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
-import { getDetails, getEpisodes, img, playbackProgress, sameSite, SERVERS, type MediaType, type Playback, type Season, type SubLang } from '../api'
+import { getDetails, getEpisodes, img, type MediaType, type Playback, type Season } from '../api'
 import { toggleSaved, useSaved, useWatched, watchedKey } from '../library'
 import { formatTime, getProgress, isFinished, markWatched, MIN_WATCHED, recordPlayback } from '../progress'
 import NativePlayer from '../components/NativePlayer'
-import ServerPicker, { serverLabel, TryNextServer } from '../components/ServerPicker'
-import SubtitlePicker from '../components/SubtitlePicker'
 import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
 import { useAsync } from '../useAsync'
 
-// v2: the old default (Videasy) stopped working, so saved choices from before are reset.
-const SERVER_KEY = 'streambox.server.v2'
 // Seconds before the end of an episode that the Up next countdown starts.
 const UP_NEXT_AT = 10
 const AUTONEXT_KEY = 'streambox.autonext'
-const SUBS_KEY = 'streambox.subs'
 
 function loadAutoNext() {
   try { return localStorage.getItem(AUTONEXT_KEY) !== '0' } catch { return true }
-}
-
-// Hebrew unless the viewer picked English.
-function loadSubs(): SubLang {
-  try { return localStorage.getItem(SUBS_KEY) === 'en' ? 'en' : 'he' } catch { return 'he' }
 }
 
 // The episode after the current one, rolling into the next season when this one is done.
@@ -38,17 +28,6 @@ function nextEpisode(seasons: Season[] | undefined, season: number, episode: num
   return following ? { season: following.season_number, episode: 1 } : undefined
 }
 
-// "Server 2 or 3": the servers that can turn subtitles on, so the hint follows the SERVERS order.
-const SUBTITLE_SERVERS = SERVERS.filter((s) => s.subtitles).map(serverLabel).join(' or ')
-
-function loadServer() {
-  try {
-    const saved = localStorage.getItem(SERVER_KEY)
-    if (SERVERS.some((s) => s.id === saved)) return saved!
-  } catch { /* storage unavailable */ }
-  return SERVERS[0].id
-}
-
 export default function Watch({ type }: { type: MediaType }) {
   const { id = '' } = useParams()
   const [params] = useSearchParams()
@@ -58,21 +37,12 @@ export default function Watch({ type }: { type: MediaType }) {
   const [season, setSeason] = useState(() => (type === 'tv' && getProgress(type, id)?.season) || 1)
   const [episode, setEpisode] = useState(() => (type === 'tv' && getProgress(type, id)?.episode) || 1)
   const [playing, setPlaying] = useState(params.get('play') === '1')
-  const [serverId, setServerId] = useState(loadServer)
-  const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0]
   const [autoNext, setAutoNext] = useState(loadAutoNext)
-  const [subs, setSubs] = useState(loadSubs)
   // Up next shows this many seconds before the end, so the next episode starts as this one finishes.
   const [ended, setEnded] = useState(false)
   const [upNextIn, setUpNextIn] = useState(UP_NEXT_AT)
-  // The episode the player iframe was loaded with, while auto-next has switched episodes inside it.
-  const [frameAt, setFrameAt] = useState<{ season: number; episode: number } | null>(null)
-  const frameRef = useRef<HTMLIFrameElement>(null)
-  // The current episode's playback handler, shared by the iframe postMessage listener and the
-  // native VidRock player so both save progress and trigger Up next the same way.
+  // The player reports progress here; the save effect reads it without re-subscribing.
   const onPlaybackRef = useRef<(p: Playback) => void>(() => {})
-  const switchCheck = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const frame = frameAt ?? { season, episode }
   const next = type === 'tv' ? nextEpisode(item?.seasons, season, episode) : undefined
   // Read by the player listener when it saves progress, without re-subscribing it.
   const saveFor = useRef({ item, next })
@@ -85,34 +55,31 @@ export default function Watch({ type }: { type: MediaType }) {
   const resumeAt = useMemo(() => {
     const saved = getProgress(type, id)
     if (!saved || saved.position < MIN_WATCHED) return undefined
-    if (type === 'tv' && (saved.season !== frame.season || saved.episode !== frame.episode)) return undefined
+    if (type === 'tv' && (saved.season !== season || saved.episode !== episode)) return undefined
     return saved.position
-  }, [type, id, frame.season, frame.episode, server.id, subs, playing]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [type, id, season, episode, playing]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => setEnded(false), [season, episode, serverId])
+  useEffect(() => setEnded(false), [season, episode])
 
   const title = item?.title
-  const playProps = { id, mt: type, title, s: type === 'tv' ? season : undefined, e: type === 'tv' ? episode : undefined, server: serverId, subs }
+  const playProps = { id, mt: type, title, s: type === 'tv' ? season : undefined, e: type === 'tv' ? episode : undefined, server: 'vidrock' }
   useEffect(() => {
     if (title) track('title_view', { id, mt: type, title })
   }, [id, type, title])
   useEffect(() => {
     if (playing && title) track('play_start', playProps)
-  }, [playing, title, serverId, season, episode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [playing, title, season, episode]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (ended && title) track('play_finish', playProps)
   }, [ended]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Embedded players only tell us how far along they are through postMessage (movies too, for
-  // play_finish). Players remember progress, so a rewatched episode can report "almost done" before it
-  // starts; the end only counts once this episode has been seen playing, and only once (Cancel sticks).
+  // The native player reports how far along it is; progress is saved every 10s, when the page is
+  // hidden or left, and as the episode finishes. Up next arms once the episode has been seen playing.
   useEffect(() => {
     if (!playing) return
-    const src = server.url(type, id, season, episode)
     const want = { id, season: type === 'tv' ? season : undefined, episode: type === 'tv' ? episode : undefined }
     let seenPlaying = false
     let shown = false
-    // Progress is saved every 10s, when the page is hidden or left, and as the episode finishes.
     let last: Playback | undefined
     let savedAt = 0
     let finished = false
@@ -123,9 +90,8 @@ export default function Watch({ type }: { type: MediaType }) {
       const title = { id, type, title: item.title, poster_path: item.poster_path, backdrop_path: item.backdrop_path, date: item.date }
       recordPlayback(title, want, p, next)
     }
-    const onPlayback = (p: Playback) => {
+    onPlaybackRef.current = (p: Playback) => {
       const left = p.ended ? 0 : p.duration > 0 ? Math.max(0, p.duration - p.watched) : Infinity
-      clearTimeout(switchCheck.current)
       if (left > UP_NEXT_AT) seenPlaying = true
       else if (seenPlaying && !shown) {
         shown = true
@@ -139,48 +105,28 @@ export default function Watch({ type }: { type: MediaType }) {
         save(p)
       }
     }
-    onPlaybackRef.current = onPlayback
-    const onMessage = (e: MessageEvent) => {
-      if (!sameSite(e.origin, src)) return
-      const p = playbackProgress(e.data, want)
-      if (p) onPlayback(p)
-    }
     const flush = () => { if (last) save(last) }
     const onHidden = () => { if (document.visibilityState === 'hidden') flush() }
-    window.addEventListener('message', onMessage)
     window.addEventListener('pagehide', flush)
     document.addEventListener('visibilitychange', onHidden)
     return () => {
-      window.removeEventListener('message', onMessage)
       window.removeEventListener('pagehide', flush)
       document.removeEventListener('visibilitychange', onHidden)
       flush()
     }
-  }, [playing, server, type, id, season, episode])
+  }, [playing, type, id, season, episode])
 
   const playNext = useCallback(() => {
     if (!next) return
-    const win = frameRef.current?.contentWindow
-    if (playing && server.switchEpisode && win) {
-      server.switchEpisode(win, next.season, next.episode)
-      setFrameAt((at) => at ?? { season, episode })
-      // If the player never reports the new episode, load it the normal way.
-      clearTimeout(switchCheck.current)
-      switchCheck.current = setTimeout(() => setFrameAt(null), 10_000)
-    }
     setSeason(next.season)
     setEpisode(next.episode)
     setPlaying(true)
-  }, [next?.season, next?.episode, playing, server, season, episode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [next?.season, next?.episode]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Anything other than auto-next (picking an episode or server) reloads the player as usual.
   const pickEpisode = (s: number, e: number) => {
-    clearTimeout(switchCheck.current)
-    setFrameAt(null)
     setSeason(s)
     setEpisode(e)
   }
-  useEffect(() => () => clearTimeout(switchCheck.current), [])
 
   const toggleAutoNext = () => {
     setAutoNext((on) => {
@@ -196,20 +142,6 @@ export default function Watch({ type }: { type: MediaType }) {
     if (saved?.episode && at && saved.episode <= at.episode_count) pickEpisode(at.season_number, saved.episode)
     else pickEpisode(item?.seasons?.[0]?.season_number ?? 1, 1)
   }, [item]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const pickServer = (sid: string, reason: 'picker' | 'try_next' = 'picker') => {
-    if (sid !== serverId) track('server_switch', { from: serverId, to: sid, reason, playing, id, mt: type })
-    setFrameAt(null)
-    setServerId(sid)
-    try { localStorage.setItem(SERVER_KEY, sid) } catch { /* ignore */ }
-  }
-
-  // Reloads the player on servers that take a subtitle language, resuming where it was.
-  const pickSubs = (lang: SubLang) => {
-    setFrameAt(null)
-    setSubs(lang)
-    try { localStorage.setItem(SUBS_KEY, lang) } catch { /* ignore */ }
-  }
 
   if (loading) {
     return (
@@ -247,29 +179,15 @@ export default function Watch({ type }: { type: MediaType }) {
 
         <div className="player" style={backdrop ? { backgroundImage: `url(${backdrop})` } : undefined}>
           {playing ? (
-            server.id === 'vidrock' ? (
-              <NativePlayer
-                key={`vidrock-${frame.season}-${frame.episode}`}
-                type={type}
-                id={id}
-                season={frame.season}
-                episode={frame.episode}
-                resumeAt={resumeAt}
-                onPlayback={(p) => onPlaybackRef.current(p)}
-              />
-            ) : (
-            <iframe
-              ref={frameRef}
-              key={`${server.id}-${frame.season}-${frame.episode}${server.subtitles ? `-${subs}` : ''}`}
-              src={server.url(type, id, frame.season, frame.episode, resumeAt, subs)}
-              // `*`, not the default 'src': some servers redirect to another domain (vidsrc-embed.ru →
-              // vidsrc.sh), which would otherwise lose fullscreen and autoplay.
-              allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
-              allowFullScreen
-              referrerPolicy="origin"
-              title={`${item.title} player`}
+            <NativePlayer
+              key={`vidrock-${season}-${episode}`}
+              type={type}
+              id={id}
+              season={season}
+              episode={episode}
+              resumeAt={resumeAt}
+              onPlayback={(p) => onPlaybackRef.current(p)}
             />
-            )
           ) : (
             <button className="play" onClick={() => setPlaying(true)}>
               <span className="play-circle"><Play size={34} fill="currentColor" /></span>
@@ -291,17 +209,6 @@ export default function Watch({ type }: { type: MediaType }) {
             />
           )}
         </div>
-
-        <div className="pickers">
-          <ServerPicker value={server} onChange={pickServer} />
-          <TryNextServer value={server} onChange={(sid) => pickServer(sid, 'try_next')} />
-          <SubtitlePicker value={subs} onChange={pickSubs} />
-        </div>
-        {!server.subtitles && (
-          <p className="subs-hint">
-            {serverLabel(server)} can't turn on subtitles for you. Pick them from the player's CC menu, or use {SUBTITLE_SERVERS}.
-          </p>
-        )}
 
         <div className="info">
           {poster && <img className="info-poster" src={poster} alt="" width={160} height={240} />}

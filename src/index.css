@@ -253,8 +253,45 @@ main { position: relative; min-height: 70dvh; }
 .back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px 0 8px; margin-bottom: 8px; border: 0; border-radius: var(--radius); background: none; color: var(--text-muted); font-weight: 500; transition: color var(--dur) var(--ease), background var(--dur) var(--ease); }
 .back:hover { color: var(--text); background: rgb(255 255 255 / 0.06); }
 .player { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius-lg); overflow: hidden; background: #000 center/cover no-repeat; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 64px rgb(0 0 0 / 0.6); }
-.player iframe, .player video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
-.player-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; color: var(--text-muted); }
+.player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+
+/* Native VidRock player */
+.np { position: absolute; inset: 0; background: #000; outline-offset: -2px; }
+.np video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
+.np:not(.np-active) { cursor: none; }
+
+.np-spinner { position: absolute; top: 50%; left: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; border: 3px solid rgb(255 255 255 / 0.16); border-top-color: var(--accent); animation: np-spin 0.8s linear infinite; }
+@keyframes np-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .np-spinner { animation-duration: 1.8s; } }
+
+.np-big { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 84px; height: 84px; padding-left: 5px; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.5); backdrop-filter: blur(4px); color: #fff; box-shadow: 0 8px 40px rgb(0 0 0 / 0.5); transition: transform var(--dur) var(--ease), background var(--dur) var(--ease); }
+.np-big:hover { transform: translate(-50%, -50%) scale(1.06); background: var(--accent); }
+
+.np-bar { position: absolute; inset: auto 0 0 0; padding: 32px 16px 14px; background: linear-gradient(to top, rgb(0 0 0 / 0.88), rgb(0 0 0 / 0.4) 62%, transparent); opacity: 0; transform: translateY(8px); transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); pointer-events: none; }
+.np.np-active .np-bar { opacity: 1; transform: none; pointer-events: auto; }
+
+.np-row { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.np-btn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--radius-sm); background: none; color: #fff; transition: background var(--dur) var(--ease); }
+.np-btn:hover { background: rgb(255 255 255 / 0.14); }
+.np-fs { margin-left: 2px; }
+.np-time { margin-left: auto; padding-left: 8px; font-size: 0.8125rem; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; white-space: nowrap; }
+.np-time-sep { color: var(--text-muted); margin: 0 2px; }
+
+.np-vol { display: flex; align-items: center; }
+.np-volrange { width: 0; opacity: 0; transition: width var(--dur) var(--ease), opacity var(--dur) var(--ease); }
+.np-vol:hover .np-volrange, .np-volrange:focus-visible { width: 74px; opacity: 1; margin: 0 8px 0 2px; }
+
+.np-seek, .np-volrange { appearance: none; -webkit-appearance: none; height: 4px; border-radius: 999px; background: rgb(255 255 255 / 0.22); cursor: pointer; }
+.np-seek { display: block; width: 100%; background: linear-gradient(to right, var(--accent) var(--played), rgb(255 255 255 / 0.42) var(--played) var(--buffered), rgb(255 255 255 / 0.22) var(--buffered)); }
+.np-volrange { background: linear-gradient(to right, #fff var(--played), rgb(255 255 255 / 0.3) var(--played)); }
+.np-seek::-webkit-slider-thumb, .np-volrange::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 13px; height: 13px; border: 0; border-radius: 50%; background: var(--accent); transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.np-seek:hover::-webkit-slider-thumb { transform: scale(1.25); box-shadow: 0 0 0 6px rgb(225 29 72 / 0.22); }
+.np-volrange::-webkit-slider-thumb { background: #fff; }
+.np-seek::-moz-range-thumb, .np-volrange::-moz-range-thumb { width: 13px; height: 13px; border: 0; border-radius: 50%; background: var(--accent); }
+.np-volrange::-moz-range-thumb { background: #fff; }
+
+.np-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; color: var(--text-muted); background: #000; }
+.np-error svg { color: var(--accent); }
 .play { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; border: 0; background: radial-gradient(circle, rgb(0 0 0 / 0.25), rgb(0 0 0 / 0.65)); color: #fff; }
 .play-circle { display: grid; place-items: center; width: 88px; height: 88px; padding-left: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 8px 32px rgb(225 29 72 / 0.5); transition: transform var(--dur) var(--ease), background var(--dur) var(--ease); }
 .play:hover .play-circle { transform: scale(1.06); background: var(--accent-hover); }

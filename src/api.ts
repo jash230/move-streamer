@@ -34,7 +34,6 @@ export interface Episode {
 
 const RAW_KEY = import.meta.env.VITE_TMDB_API_KEY as string | undefined
 const TMDB_KEY = RAW_KEY && RAW_KEY !== 'your_tmdb_v3_api_key' ? RAW_KEY : undefined
-const VIDSRC_BASE = ((import.meta.env.VITE_VIDSRC_BASE as string | undefined) ?? 'https://vidsrc.sh').replace(/\/$/, '')
 
 // Production builds use the server-side proxy, which holds the key.
 export const hasApiKey = Boolean(TMDB_KEY) || import.meta.env.PROD
@@ -197,83 +196,14 @@ export const discoverByCountry = async (type: MediaType, country: string, sort =
   )
 
 // ISO 639-1 codes, as the players take them.
-export type SubLang = 'he' | 'en'
-
 export interface Server {
   id: string
   name: string
-  popups: boolean
-  // Whether url() can turn on subtitles in a given language; on the others, viewers pick them in the player.
-  subtitles: boolean
-  // `start` is where to resume, in seconds; servers without a start-time parameter ignore it.
-  url: (type: MediaType, id: string, season: number, episode: number, start?: number, subs?: SubLang) => string
-  // Switches episodes inside the running player on a postMessage, for players that make every
-  // fresh load wait for a click.
-  switchEpisode?: (frame: Window, season: number, episode: number) => void
 }
 
-// Embed players, each a separate source. frameXTV is first, so it is the default; the rest are
-// ordered by how reliably they played in a real-browser test on 2026-10-06 (Inception, The Dark
-// Knight, Breaking Bad, Friends). Dropped: Videasy, VidFast, SuperEmbed, 2Embed, VidSrc.to and
-// others that played none of them, and VidSrc mirrors that duplicate it. Third-party players refuse to run in a sandboxed iframe, so pop-ups can't
-// be blocked from our side.
-export const SERVERS: Server[] = [
-  {
-    // Docs: https://framextv.cc/api
-    id: 'framex',
-    name: 'frameXTV',
-    popups: true,
-    // Picks subtitles inside the player; the URL takes no language.
-    subtitles: false,
-    url: (type, id, s, e, start) =>
-      (type === 'movie' ? `https://framextv.cc/embed/${id}` : `https://framextv.cc/embed/${id}/${s}/${e}`) +
-      '?autoplay=1&muted=0' +
-      (start ? `&start=${Math.floor(start)}` : ''),
-  },
-  {
-    id: 'vidsrc',
-    name: 'VidSrc',
-    popups: true,
-    subtitles: true,
-    url: (type, id, s, e, _start, subs) =>
-      (type === 'movie'
-        ? `${VIDSRC_BASE}/embed/movie?tmdb=${id}`
-        : `${VIDSRC_BASE}/embed/tv?tmdb=${id}&season=${s}&episode=${e}`) +
-      (subs ? `&ds_lang=${subs}` : ''),
-    // A fresh VidSrc load always shows its own play button, so auto-next can't reload it.
-    switchEpisode: (frame, season, episode) => frame.postMessage({ type: 'TV_SET', season, episode }, '*'),
-  },
-  {
-    id: 'vidrock',
-    name: 'VidRock',
-    popups: false,
-    subtitles: true,
-    // Without `lang` VidRock falls back to the browser's language.
-    url: (type, id, s, e, _start, subs) =>
-      (type === 'movie' ? `https://vidrock.net/movie/${id}?autoplay=true` : `https://vidrock.net/tv/${id}/${s}/${e}?autoplay=true`) +
-      (subs ? `&lang=${subs}` : ''),
-  },
-  {
-    id: 'vidzee',
-    name: 'VidZee',
-    popups: false,
-    subtitles: false,
-    url: (type, id, s, e) =>
-      type === 'movie' ? `https://player.vidzee.wtf/embed/movie/${id}` : `https://player.vidzee.wtf/embed/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: 'vidlink',
-    name: 'VidLink',
-    popups: true,
-    // Only takes a subtitle file URL (sub_file), not a language.
-    subtitles: false,
-    url: (type, id, s, e, start) =>
-      (type === 'movie'
-        ? `https://vidlink.pro/movie/${id}?primaryColor=E11D48&autoplay=true`
-        : `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=E11D48&nextbutton=true&autoplay=true`) +
-      (start ? `&startAt=${Math.floor(start)}` : ''),
-  },
-]
+// VidRock is the only source: it plays natively (see src/vidrock.ts + NativePlayer), no iframe.
+// Kept as a one-item list so analytics labelling (serverLabel) and existing call sites keep working.
+export const SERVERS: Server[] = [{ id: 'vidrock', name: 'VidRock' }]
 
 export interface PlaybackTarget { id: string; season?: number; episode?: number }
 

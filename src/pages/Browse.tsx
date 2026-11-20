@@ -14,7 +14,7 @@ export default function Browse({ type }: { type: MediaType }) {
   return (
     <div className="page">
       <Seo
-        title={type === 'movie' ? 'Watch Movies Online Free' : 'Watch TV Shows Online Free'}
+        title={type === 'movie' ? 'Free Website to Watch Movies Online' : 'Free Website to Watch TV Shows Online'}
         description={type === 'movie' ? MOVIES_DESCRIPTION : TV_DESCRIPTION}
         path={type === 'movie' ? '/movies' : '/tv'}
       />

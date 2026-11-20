@@ -10,7 +10,7 @@ const pages = [
   {
     file: 'movies.html',
     path: '/movies',
-    title: 'Watch Movies Online Free · Cucuflix',
+    title: 'Free Website to Watch Movies Online · Cucuflix',
     description: 'Watch movies online for free on Cucuflix. Stream now playing, popular, top rated and upcoming movies, no download needed.',
     heading: 'Watch movies online for free',
     blurb: 'New releases, popular hits, all-time top rated films and what is coming soon.',
@@ -18,7 +18,7 @@ const pages = [
   {
     file: 'tv.html',
     path: '/tv',
-    title: 'Watch TV Shows Online Free · Cucuflix',
+    title: 'Free Website to Watch TV Shows Online · Cucuflix',
     description: 'Watch TV shows online for free on Cucuflix. Stream full seasons and episodes of popular, top rated and airing-today series.',
     heading: 'Watch TV shows online for free',
     blurb: 'Full seasons and episodes of series airing today, popular shows and top rated TV.',

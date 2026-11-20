@@ -72,7 +72,7 @@ function Site() {
       </main>
       <footer className="footer">
         <span>Cucuflix</span>
-        <span className="muted">Metadata by TMDB. Video is served by third-party players.</span>
+        <span className="muted">Cucuflix is a free website to watch movies online and watch TV shows online. Metadata by TMDB. Video is served by third-party players.</span>
       </footer>
       <Analytics />
     </>

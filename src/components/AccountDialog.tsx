@@ -89,7 +89,7 @@ export default function AccountDialog() {
       onClose={close}
       onClick={(e) => e.target === ref.current && close()}
     >
-      <div className="review-panel">
+      {mode && <div className="review-panel">
         <button type="button" className="review-close" onClick={close} aria-label="Close">
           <X size={20} />
         </button>
@@ -145,7 +145,7 @@ export default function AccountDialog() {
             </div>
           </form>
         )}
-      </div>
+      </div>}
     </dialog>
   )
 }

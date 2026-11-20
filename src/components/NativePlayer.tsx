@@ -2,9 +2,10 @@ import Hls from 'hls.js'
 import { TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { MediaType, Playback } from '../api'
+import { resolveVidrock, type VidrockServer } from '../vidrock'
 
-// Native <video> player for VidRock: resolves the real HLS via /api/vidrock and plays it through
-// the /api/stream proxy with hls.js, trying each returned server until one plays. Reports progress
+// Native <video> player for VidRock: resolves the real HLS in the browser (see vidrock.ts) and plays
+// it through the /api/stream proxy with hls.js, trying each returned server until one plays. Reports progress
 // the same way the iframe players' postMessage does, via onPlayback, so Watch resumes/saves/auto-nexts
 // without caring which player drew the frame.
 export default function NativePlayer(props: {
@@ -27,10 +28,9 @@ export default function NativePlayer(props: {
     setFailed(false)
 
     const play = async () => {
-      const q =
-        type === 'movie' ? `type=movie&id=${id}` : `type=tv&id=${id}&season=${season}&episode=${episode}`
-      let servers: { name: string; url: string }[] = []
-      try { servers = (await fetch(`/api/vidrock?${q}`).then((r) => r.json())).servers ?? [] } catch { /* handled below */ }
+      // Resolve in the browser: VidRock's /api blocks datacenter IPs, so this can't run on the server.
+      let servers: VidrockServer[] = []
+      try { servers = await resolveVidrock(type, id, season, episode) } catch { /* handled below */ }
       if (cancelled) return
       if (!servers.length) { setFailed(true); return }
 

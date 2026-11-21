@@ -1,5 +1,5 @@
 import Hls from 'hls.js'
-import { Captions, CaptionsOff, Check, Maximize, Minimize, Pause, Play, TriangleAlert, Volume2, VolumeX } from 'lucide-react'
+import { Captions, CaptionsOff, Check, Maximize, Minimize, Pause, Play, RotateCcw, RotateCw, TriangleAlert, Volume2, VolumeX } from 'lucide-react'
 import { type CSSProperties, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import type { MediaType, Playback } from '../api'
 import { formatTime } from '../progress'
@@ -253,7 +253,13 @@ export default function NativePlayer(props: {
   const v = () => videoRef.current
   const togglePlay = () => { const el = v(); if (!el) return; if (el.paused) el.play(); else el.pause() }
   const seek = (t: number) => { const el = v(); if (el) el.currentTime = t }
-  const skip = (d: number) => { const el = v(); if (el) el.currentTime = Math.min(dur || el.duration, Math.max(0, el.currentTime + d)) }
+  const skip = (d: number) => {
+    const el = v()
+    if (!el || el.readyState === HTMLMediaElement.HAVE_NOTHING) return
+    const duration = Number.isFinite(el.duration) ? el.duration : Number.POSITIVE_INFINITY
+    const currentTime = Number.isFinite(el.currentTime) ? el.currentTime : 0
+    el.currentTime = Math.min(duration, Math.max(0, currentTime + d))
+  }
   const setVol = (val: number) => { const el = v(); if (!el) return; el.volume = val; el.muted = val === 0 }
   const toggleMute = () => { const el = v(); if (el) el.muted = !el.muted }
   const toggleFullscreen = async () => {
@@ -377,6 +383,14 @@ export default function NativePlayer(props: {
         <div className="np-row">
           <button className="np-btn" onClick={togglePlay} aria-label={paused ? 'Play' : 'Pause'}>
             {paused ? <Play size={20} fill="currentColor" /> : <Pause size={20} fill="currentColor" />}
+          </button>
+
+          <button className="np-btn np-skip" onClick={() => skip(-10)} aria-label="Skip back 10 seconds" title="Skip back 10 seconds" disabled={dur <= 0}>
+            <span className="np-skip-icon" aria-hidden="true"><RotateCcw size={22} /><span>10</span></span>
+          </button>
+
+          <button className="np-btn np-skip" onClick={() => skip(10)} aria-label="Skip forward 10 seconds" title="Skip forward 10 seconds" disabled={dur <= 0}>
+            <span className="np-skip-icon" aria-hidden="true"><RotateCw size={22} /><span>10</span></span>
           </button>
 
           <div className="np-vol">

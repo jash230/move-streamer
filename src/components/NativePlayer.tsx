@@ -54,7 +54,6 @@ export default function NativePlayer(props: {
   const wrapRef = useRef<HTMLDivElement>(null)
   const hlsRef = useRef<Hls | null>(null)
   const fullscreenRequestedRef = useRef(false)
-  const fullscreenRestorePendingRef = useRef(false)
   const sourceKeyRef = useRef<string | undefined>(undefined)
   const sourceChangeRef = useRef(false)
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -206,27 +205,15 @@ export default function NativePlayer(props: {
   useEffect(() => {
     const video = videoRef.current as WebkitFullscreenVideo | null
     const onChange = () => {
-      const active = document.fullscreenElement === wrapRef.current || Boolean(video?.webkitDisplayingFullscreen)
+      const active = document.fullscreenElement === wrapRef.current?.parentElement || document.fullscreenElement === wrapRef.current || Boolean(video?.webkitDisplayingFullscreen)
       setFullscreen(active)
-      if (active) fullscreenRestorePendingRef.current = false
-      if (!active && fullscreenRequestedRef.current && (video?.ended || sourceChangeRef.current)) {
-        fullscreenRestorePendingRef.current = true
-        setPseudoFullscreen(true)
-      } else if (!active && fullscreenRequestedRef.current) {
-        fullscreenRequestedRef.current = false
-        fullscreenRestorePendingRef.current = false
-      }
+      if (!active && fullscreenRequestedRef.current && !video?.ended && !sourceChangeRef.current) fullscreenRequestedRef.current = false
     }
     const onNativeEnd = () => {
       setFullscreen(false)
       if (video) video.controls = false
-      if (fullscreenRequestedRef.current && (video?.ended || sourceChangeRef.current)) {
-        fullscreenRestorePendingRef.current = true
-        setPseudoFullscreen(true)
-      } else {
-        fullscreenRequestedRef.current = false
-        fullscreenRestorePendingRef.current = false
-      }
+      if (fullscreenRequestedRef.current && (video?.ended || sourceChangeRef.current)) setPseudoFullscreen(true)
+      else fullscreenRequestedRef.current = false
     }
     document.addEventListener('fullscreenchange', onChange)
     video?.addEventListener('webkitbeginfullscreen', onChange)
@@ -244,7 +231,6 @@ export default function NativePlayer(props: {
     const onEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape' || !fullscreenRequestedRef.current) return
       fullscreenRequestedRef.current = false
-      fullscreenRestorePendingRef.current = false
       setPseudoFullscreen(false)
     }
     document.addEventListener('keydown', onEscape, true)
@@ -287,41 +273,33 @@ export default function NativePlayer(props: {
   }
   const setVol = (val: number) => { const el = v(); if (!el) return; el.volume = val; el.muted = val === 0 }
   const toggleMute = () => { const el = v(); if (el) el.muted = !el.muted }
-  const restoreFullscreen = async () => {
-    const wrap = wrapRef.current
-    if (!fullscreenRequestedRef.current || !wrap) return
-    try {
-      if (wrap.requestFullscreen) await wrap.requestFullscreen()
-    } catch { /* Keep the CSS fullscreen fallback active if the browser requires a user gesture. */ }
-    if (document.fullscreenElement === wrap) setPseudoFullscreen(false)
-    else setPseudoFullscreen(true)
-  }
   const toggleFullscreen = async () => {
     const video = videoRef.current as WebkitFullscreenVideo | null
     const wrap = wrapRef.current
     if (!video || !wrap) return
+    const target = wrap.parentElement ?? wrap
     if (pseudoFullscreen) {
       fullscreenRequestedRef.current = false
-      fullscreenRestorePendingRef.current = false
       setPseudoFullscreen(false)
       return
     }
-    if (document.fullscreenElement === wrap || video.webkitDisplayingFullscreen) {
+    if (document.fullscreenElement === target || document.fullscreenElement === wrap || video.webkitDisplayingFullscreen) {
       fullscreenRequestedRef.current = false
-      fullscreenRestorePendingRef.current = false
       if (document.fullscreenElement === wrap) await document.exitFullscreen()
+      else if (document.fullscreenElement === target) await document.exitFullscreen()
       else video.webkitExitFullscreen?.()
       return
     }
     fullscreenRequestedRef.current = true
-    if (wrap.requestFullscreen) {
-      try { await wrap.requestFullscreen(); return } catch { /* Fall through for browsers that only fullscreen video. */ }
+    if (target.requestFullscreen) {
+      try { await target.requestFullscreen(); return } catch { /* Try native video fullscreen where supported. */ }
     }
     if (video.webkitEnterFullscreen) {
       video.controls = true
       try { video.webkitEnterFullscreen(); return } catch { video.controls = false }
     }
-    setPseudoFullscreen(true)
+    if (!target.requestFullscreen) setPseudoFullscreen(true)
+    else fullscreenRequestedRef.current = false
   }
 
   const selectSubtitle = (id: number) => {
@@ -382,14 +360,7 @@ export default function NativePlayer(props: {
         onPlay={() => { setPaused(false); poke() }}
         onPause={() => { setPaused(true); setShowControls(true) }}
         onWaiting={() => setWaiting(true)}
-        onPlaying={() => {
-          sourceChangeRef.current = false
-          setWaiting(false)
-          if (fullscreenRestorePendingRef.current) {
-            fullscreenRestorePendingRef.current = false
-            void restoreFullscreen()
-          }
-        }}
+        onPlaying={() => { sourceChangeRef.current = false; setWaiting(false) }}
         onTimeUpdate={(e) => { const el = e.currentTarget; setCur(el.currentTime); if (el.duration) onPlayback({ watched: el.currentTime, duration: el.duration }) }}
         onProgress={(e) => { const b = e.currentTarget.buffered; if (b.length) setBuffered(b.end(b.length - 1)) }}
         onVolumeChange={(e) => { setMuted(e.currentTarget.muted); setVolume(e.currentTarget.volume) }}

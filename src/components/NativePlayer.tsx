@@ -54,6 +54,7 @@ export default function NativePlayer(props: {
   const wrapRef = useRef<HTMLDivElement>(null)
   const hlsRef = useRef<Hls | null>(null)
   const fullscreenRequestedRef = useRef(false)
+  const fullscreenRestorePendingRef = useRef(false)
   const sourceKeyRef = useRef<string | undefined>(undefined)
   const sourceChangeRef = useRef(false)
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -207,13 +208,25 @@ export default function NativePlayer(props: {
     const onChange = () => {
       const active = document.fullscreenElement === wrapRef.current || Boolean(video?.webkitDisplayingFullscreen)
       setFullscreen(active)
-      if (!active && fullscreenRequestedRef.current && !video?.ended && !sourceChangeRef.current) fullscreenRequestedRef.current = false
+      if (active) fullscreenRestorePendingRef.current = false
+      if (!active && fullscreenRequestedRef.current && (video?.ended || sourceChangeRef.current)) {
+        fullscreenRestorePendingRef.current = true
+        setPseudoFullscreen(true)
+      } else if (!active && fullscreenRequestedRef.current) {
+        fullscreenRequestedRef.current = false
+        fullscreenRestorePendingRef.current = false
+      }
     }
     const onNativeEnd = () => {
       setFullscreen(false)
       if (video) video.controls = false
-      if (fullscreenRequestedRef.current && (video?.ended || sourceChangeRef.current)) setPseudoFullscreen(true)
-      else fullscreenRequestedRef.current = false
+      if (fullscreenRequestedRef.current && (video?.ended || sourceChangeRef.current)) {
+        fullscreenRestorePendingRef.current = true
+        setPseudoFullscreen(true)
+      } else {
+        fullscreenRequestedRef.current = false
+        fullscreenRestorePendingRef.current = false
+      }
     }
     document.addEventListener('fullscreenchange', onChange)
     video?.addEventListener('webkitbeginfullscreen', onChange)
@@ -224,6 +237,18 @@ export default function NativePlayer(props: {
       video?.removeEventListener('webkitbeginfullscreen', onChange)
       video?.removeEventListener('webkitendfullscreen', onNativeEnd)
     }
+  }, [])
+
+  // Escape is an intentional fullscreen exit, including during an episode transition.
+  useEffect(() => {
+    const onEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape' || !fullscreenRequestedRef.current) return
+      fullscreenRequestedRef.current = false
+      fullscreenRestorePendingRef.current = false
+      setPseudoFullscreen(false)
+    }
+    document.addEventListener('keydown', onEscape, true)
+    return () => document.removeEventListener('keydown', onEscape, true)
   }, [])
 
   useEffect(() => {
@@ -262,17 +287,28 @@ export default function NativePlayer(props: {
   }
   const setVol = (val: number) => { const el = v(); if (!el) return; el.volume = val; el.muted = val === 0 }
   const toggleMute = () => { const el = v(); if (el) el.muted = !el.muted }
+  const restoreFullscreen = async () => {
+    const wrap = wrapRef.current
+    if (!fullscreenRequestedRef.current || !wrap) return
+    try {
+      if (wrap.requestFullscreen) await wrap.requestFullscreen()
+    } catch { /* Keep the CSS fullscreen fallback active if the browser requires a user gesture. */ }
+    if (document.fullscreenElement === wrap) setPseudoFullscreen(false)
+    else setPseudoFullscreen(true)
+  }
   const toggleFullscreen = async () => {
     const video = videoRef.current as WebkitFullscreenVideo | null
     const wrap = wrapRef.current
     if (!video || !wrap) return
     if (pseudoFullscreen) {
       fullscreenRequestedRef.current = false
+      fullscreenRestorePendingRef.current = false
       setPseudoFullscreen(false)
       return
     }
     if (document.fullscreenElement === wrap || video.webkitDisplayingFullscreen) {
       fullscreenRequestedRef.current = false
+      fullscreenRestorePendingRef.current = false
       if (document.fullscreenElement === wrap) await document.exitFullscreen()
       else video.webkitExitFullscreen?.()
       return
@@ -346,7 +382,14 @@ export default function NativePlayer(props: {
         onPlay={() => { setPaused(false); poke() }}
         onPause={() => { setPaused(true); setShowControls(true) }}
         onWaiting={() => setWaiting(true)}
-        onPlaying={() => { sourceChangeRef.current = false; setWaiting(false) }}
+        onPlaying={() => {
+          sourceChangeRef.current = false
+          setWaiting(false)
+          if (fullscreenRestorePendingRef.current) {
+            fullscreenRestorePendingRef.current = false
+            void restoreFullscreen()
+          }
+        }}
         onTimeUpdate={(e) => { const el = e.currentTarget; setCur(el.currentTime); if (el.duration) onPlayback({ watched: el.currentTime, duration: el.duration }) }}
         onProgress={(e) => { const b = e.currentTarget.buffered; if (b.length) setBuffered(b.end(b.length - 1)) }}
         onVolumeChange={(e) => { setMuted(e.currentTarget.muted); setVolume(e.currentTarget.volume) }}
@@ -385,12 +428,12 @@ export default function NativePlayer(props: {
             {paused ? <Play size={20} fill="currentColor" /> : <Pause size={20} fill="currentColor" />}
           </button>
 
-          <button className="np-btn np-skip" onClick={() => skip(-10)} aria-label="Skip back 10 seconds" title="Skip back 10 seconds" disabled={dur <= 0}>
-            <span className="np-skip-icon" aria-hidden="true"><RotateCcw size={22} /><span>10</span></span>
+          <button className="np-btn np-skip" onClick={() => skip(-10)} aria-label="Rewind 10 seconds" title="Rewind 10 seconds" disabled={dur <= 0}>
+            <RotateCcw size={18} aria-hidden="true" /><span aria-hidden="true">10s</span>
           </button>
 
-          <button className="np-btn np-skip" onClick={() => skip(10)} aria-label="Skip forward 10 seconds" title="Skip forward 10 seconds" disabled={dur <= 0}>
-            <span className="np-skip-icon" aria-hidden="true"><RotateCw size={22} /><span>10</span></span>
+          <button className="np-btn np-skip" onClick={() => skip(10)} aria-label="Forward 10 seconds" title="Forward 10 seconds" disabled={dur <= 0}>
+            <RotateCw size={18} aria-hidden="true" /><span aria-hidden="true">10s</span>
           </button>
 
           <div className="np-vol">

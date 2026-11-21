@@ -9,8 +9,7 @@
 // visitor of vidrock.net); they rotate it on deploys, so if this stops working, re-grab it from
 // https://vidrock.net/assets/index-*.js.
 import type { MediaType } from './api'
-
-const KEY_HEX = '7f3e9c2a8b5d1f4e6a9c3b7d2e5f8a1c4b6d9e2f5a8c1b4d7e9f2a5c8b1d4e7f'
+import { VIDROCK_KEY_HEX } from './vidrockKey'
 
 const hexBytes = (h: string) => Uint8Array.from(h.match(/../g)!.map((b) => parseInt(b, 16)))
 
@@ -25,9 +24,15 @@ const b64urlBytes = (s: string) => {
 }
 
 let keyP: Promise<CryptoKey> | undefined
-const key = () => (keyP ??= crypto.subtle.importKey('raw', hexBytes(KEY_HEX), { name: 'AES-GCM' }, false, ['decrypt']))
+const key = () => (keyP ??= crypto.subtle.importKey('raw', hexBytes(VIDROCK_KEY_HEX), { name: 'AES-GCM' }, false, ['decrypt']))
 
 export async function decryptToken(token: string) {
+  if (!globalThis.crypto?.subtle) {
+    if (!import.meta.env.DEV) throw new Error('Web Crypto is unavailable on this origin')
+    const res = await fetch('/api/dev/vidrock-decrypt', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: token })
+    if (!res.ok) throw new Error(`Local token decryption failed (${res.status})`)
+    return res.text()
+  }
   const b = b64urlBytes(token)
   const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, await key(), b.slice(12))
   return new TextDecoder().decode(pt)

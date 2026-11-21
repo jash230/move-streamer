@@ -180,7 +180,6 @@ export default function Watch({ type }: { type: MediaType }) {
         <div className="player" style={backdrop ? { backgroundImage: `url(${backdrop})` } : undefined}>
           {playing ? (
             <NativePlayer
-              key={`vidrock-${season}-${episode}`}
               type={type}
               id={id}
               season={season}

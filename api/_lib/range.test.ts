@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveRange } from './range.js'
 
 const now = new Date('2026-10-06T18:00:00Z')
-const midnight = new Date('2026-10-06T00:00:00Z') // UTC midnight, the day boundary Vercel Analytics uses
+const midnight = new Date('2026-10-06T00:00:00Z') // UTC midnight, the default dashboard day boundary
 const DAY = 86_400_000
 
 describe('resolveRange', () => {

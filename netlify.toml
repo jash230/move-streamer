@@ -1,0 +1,83 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."cron-cleanup"]
+  schedule = "0 3 * * *"
+
+[[redirects]]
+  from = "/movies"
+  to = "/movies.html"
+  status = 200
+
+[[redirects]]
+  from = "/tv"
+  to = "/tv.html"
+  status = 200
+
+[[redirects]]
+  from = "/docs"
+  to = "/api/docs?format=html"
+  status = 200
+
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/israel"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/search"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/my-list"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/movie/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tv/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/yardenos"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/yardenos/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/search"
+  [headers.values]
+    X-Robots-Tag = "noindex, follow"
+
+[[headers]]
+  for = "/yardenos"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/yardenos/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

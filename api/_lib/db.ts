@@ -45,7 +45,7 @@ const SCHEMA = [
 let client: Sql | null = null
 let ready: Promise<unknown> | null = null
 
-// Vercel's Neon integration sets DATABASE_URL; POSTGRES_URL covers older Vercel Postgres setups.
+// DATABASE_URL is the standard setting; POSTGRES_URL keeps compatibility with existing deployments.
 export async function db(): Promise<Sql | null> {
   const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL
   if (!url) return null

@@ -1,5 +1,5 @@
 // Date-range presets for admin reports. Days run midnight to midnight in the admin timezone
-// (UTC by default, the boundary Vercel Analytics uses) so both sources cover the same days.
+// (UTC by default) so all dashboard reports cover the same days.
 // Each range carries the previous period of equal length so numbers can be compared.
 const DAY = 86_400_000
 const DAYS: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 }

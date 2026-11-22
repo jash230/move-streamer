@@ -4,7 +4,7 @@ export async function readReport<T>(res: Response): Promise<T> {
   const isJson = (res.headers.get('content-type') ?? '').includes('application/json')
   if (!isJson) {
     throw new Error(res.ok
-      ? "The data service didn't answer. Run the dashboard with `npm run dev` from this project, or open it on the Vercel site."
+      ? "The data service didn't answer. Run the dashboard with `npm run dev` from this project, or open it on the Netlify site."
       : `The server answered ${res.status}`)
   }
   const body = (await res.json()) as { data?: T; error?: string }

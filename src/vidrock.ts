@@ -1,7 +1,7 @@
 // Resolving VidRock has to happen in the browser: its /api sits behind Cloudflare, which blocks
-// datacenter IPs, so a server-side call from Vercel gets a 403. The browser's own (residential) IP
+// datacenter IPs, so a server-side call gets a 403. The browser's own IP
 // is fine, and /api sends `Access-Control-Allow-Origin: *`. Only the stream itself is then proxied
-// through /api/stream — which VidRock's CDNs *do* allow from Vercel — so the viewer's IP stays off
+// through /api/stream — which VidRock's CDNs allow — so the viewer's IP stays off
 // those CDNs. The one request the browser still makes to VidRock is this small resolve JSON.
 //
 // Each server's `url` is base64url( 12-byte AES-GCM IV ‖ ciphertext‖tag ), decrypting to the signed

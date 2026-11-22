@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     INSERT INTO sessions (id, visitor_id, started_at, last_seen, pageviews, engaged, entry_path,
       country, region, city, device, browser, os, referrer, utm_source, utm_medium, utm_campaign)
     VALUES (${batch.s}, ${batch.v}, ${new Date(s.first)}, ${new Date(s.last)}, ${s.pageviews}, ${s.engaged}, ${s.entryPath},
-      ${header(request, 'x-vercel-ip-country')}, ${header(request, 'x-vercel-ip-country-region')}, ${header(request, 'x-vercel-ip-city')},
+      ${header(request, 'x-site-country')}, ${header(request, 'x-site-region')}, ${header(request, 'x-site-city')},
       ${ua.device}, ${ua.browser}, ${ua.os}, ${referrerHost(batch.r, host)},
       ${batch.u?.source ?? null}, ${batch.u?.medium ?? null}, ${batch.u?.campaign ?? null})
     ON CONFLICT (id) DO UPDATE SET

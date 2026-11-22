@@ -47,7 +47,7 @@ export default function AdminApp() {
         <Seo title="Admin" noindex />
         <div className="setup">
           <h1>Connect Clerk to open the dashboard</h1>
-          <p>Add <code>VITE_CLERK_PUBLISHABLE_KEY</code> to your environment (Vercel project settings, or <code>.env.local</code> for local work), then rebuild.</p>
+          <p>Add <code>VITE_CLERK_PUBLISHABLE_KEY</code> to your Netlify site environment (or <code>.env.local</code> for local work), then rebuild.</p>
         </div>
       </div>
     )

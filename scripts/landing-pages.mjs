@@ -1,6 +1,6 @@
 // Writes dist/movies.html and dist/tv.html: copies of the built index.html with their own
 // title, description, canonical and fallback content, so crawlers that skip JS still see
-// distinct /movies and /tv pages. vercel.json rewrites those routes to these files.
+// distinct /movies and /tv pages. netlify.toml rewrites those routes to these files.
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const SITE = 'https://cucuflix.online'

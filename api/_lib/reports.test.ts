@@ -61,13 +61,11 @@ async function report<T = Record<string, any>>(name: string, extra = '') {
 }
 
 const now = Date.now()
-const TLV = { 'x-vercel-ip-country': 'IL', 'x-vercel-ip-city': 'Tel%20Aviv', 'x-vercel-ip-country-region': 'TA' }
+const TLV = { 'x-site-country': 'IL', 'x-site-city': 'Tel%20Aviv', 'x-site-region': 'TA' }
 
 beforeAll(async () => {
   process.env.DATABASE_URL = 'pglite://memory'
   process.env.ADMIN_TZ = 'Asia/Jerusalem'
-  // A real token in .env.local would make the overview ask Vercel instead of these test visits.
-  delete process.env.VERCEL_TOKEN
 
   // Visitor A: lands on the home page and leaves (a bounce).
   expect((await send({ v: 'visitorAAAA', s: 'sessionA1111', r: 'https://www.google.com/', e: [
@@ -83,13 +81,13 @@ beforeAll(async () => {
     { t: 'play_start', p: '/tv/1399', at: now - 40_000, d: { id: '1399', mt: 'tv', title: 'Game of Thrones', s: 1, e: 1, server: 'vidsrc' } },
     { t: 'server_switch', p: '/tv/1399', at: now - 35_000, d: { from: 'vidsrc', to: 'vidzee', reason: 'try_next', playing: true } },
     { t: 'play_start', p: '/tv/1399', at: now - 34_000, d: { id: '1399', mt: 'tv', title: 'Game of Thrones', s: 1, e: 1, server: 'vidzee' } },
-  ] }, DESKTOP, { 'x-vercel-ip-country': 'US', 'x-vercel-ip-city': 'Austin' })
+  ] }, DESKTOP, { 'x-site-country': 'US', 'x-site-city': 'Austin' })
   // A second batch for the same visit: finishes, then a search that finds nothing.
   await send({ v: 'visitorBBBB', s: 'sessionB1111', e: [
     { t: 'play_finish', p: '/tv/1399', at: now - 20_000, d: { id: '1399', mt: 'tv', title: 'Game of Thrones', s: 1, e: 1, server: 'vidzee' } },
     { t: 'page_view', p: '/search', at: now - 10_000 },
     { t: 'search', p: '/search', at: now - 10_000, d: { q: 'Shtisel Season 9', results: 0 } },
-  ] }, DESKTOP, { 'x-vercel-ip-country': 'US', 'x-vercel-ip-city': 'Austin' })
+  ] }, DESKTOP, { 'x-site-country': 'US', 'x-site-city': 'Austin' })
 
   // Visitor C first came 3 days ago and returned the next day (written directly: the tracker clamps old timestamps).
   await pg.query(`INSERT INTO sessions (id, visitor_id, started_at, last_seen, pageviews, engaged, entry_path, country)

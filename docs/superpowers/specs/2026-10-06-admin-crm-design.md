@@ -1,6 +1,6 @@
 # Admin CRM (`/admin`)
 
-One private place to see how Cucuflix is used: traffic, people, what they watch, playback problems and reviews. All data is first-party; nothing is read from Vercel Analytics.
+One private place to see how Cucuflix is used: traffic, people, what they watch, playback problems and reviews. All data is collected by the site's first-party tracker and stored in Postgres.
 
 ## Decisions
 
@@ -21,7 +21,7 @@ One private place to see how Cucuflix is used: traffic, people, what they watch,
 | `search` | results load, or a suggestion is picked | query, result count |
 | `heartbeat` | every 30s while the tab is visible | none (only updates `sessions.last_seen`) |
 
-Location (country, region, city) comes from Vercel's `x-vercel-ip-*` headers; device, browser and OS from the user agent; source from the referrer and UTM tags of the first page. Bots are dropped.
+Location (country, region, city) comes from Netlify's function geolocation context; device, browser and OS come from the user agent; source comes from the referrer and UTM tags of the first page. Bots are dropped.
 
 ## Definitions
 

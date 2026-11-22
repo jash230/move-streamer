@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     status: res.status,
     headers: {
       'Content-Type': 'application/json',
-      // Catalog data changes slowly; let Vercel's CDN absorb repeat requests.
+      // Catalog data changes slowly; let the deployment CDN absorb repeat requests.
       'Cache-Control': res.ok ? 'public, s-maxage=3600, stale-while-revalidate=86400' : 'no-store',
     },
   })

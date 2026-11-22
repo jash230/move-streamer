@@ -17,7 +17,7 @@ export async function requireAdmin(request: Request): Promise<Response | null> {
   const userId = state.toAuth().userId
   const admins = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean)
   if (!admins.includes(userId)) {
-    return error(`This account isn't an admin. Add ${userId} to ADMIN_USER_IDS in Vercel, then redeploy.`, 403)
+    return error(`This account isn't an admin. Add ${userId} to ADMIN_USER_IDS in the site environment, then redeploy.`, 403)
   }
   return null
 }

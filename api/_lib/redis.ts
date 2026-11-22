@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis'
 
-// Vercel's Upstash integration sets KV_*; a manual Upstash setup uses UPSTASH_*.
+// Support both Upstash's standard names and existing KV_* deployment variables.
 export function redis() {
   const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN

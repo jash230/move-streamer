@@ -1,17 +1,16 @@
-// Admin dashboard data. One function serves every report (?report=…&range=…) to stay under
-// Vercel Hobby's function limit. Every request is checked against Clerk + ADMIN_USER_IDS.
+// Admin dashboard data. One function serves every report (?report=…&range=…).
+// Every request is checked against Clerk + ADMIN_USER_IDS.
 import { requireAdmin } from './_lib/auth.js'
 import { db, type Sql } from './_lib/db.js'
 import { error, json } from './_lib/http.js'
 import { resolveRange, type Range } from './_lib/range.js'
 import { redis } from './_lib/redis.js'
-import { vercelTraffic, type VercelTraffic } from './_lib/vercel.js'
 
-// Day boundaries; UTC matches Vercel Analytics, so both sources cover the same days.
+// Day boundaries use UTC by default and can be changed with ADMIN_TZ.
 const TZ = process.env.ADMIN_TZ ?? 'UTC'
 const ID = /^[A-Za-z0-9_-]{8,64}$/
 
-type Ctx = { sql: Sql; r: Range; url: URL; now: Date }
+type Ctx = { sql: Sql; r: Range; url: URL }
 type Window = { from: Date; to: Date }
 
 async function stats(sql: Sql, { from, to }: Window) {
@@ -84,22 +83,12 @@ async function migrateRedisReviews(sql: Sql) {
 const reviewList = (sql: Sql, { from, to }: Window, limit: number) => sql`
   SELECT id::text, at, rating, comment, name, page FROM reviews WHERE at >= ${from} AND at < ${to} ORDER BY at DESC, id DESC LIMIT ${limit}`
 
-// Vercel's numbers when it's connected; otherwise a note saying why our own count is shown instead.
-async function traffic(r: Range, now: Date): Promise<VercelTraffic | { note: string }> {
-  try {
-    return (await vercelTraffic(r, now)) ?? { note: 'Vercel Analytics is not connected (VERCEL_TOKEN is not set), so these are Cucuflix\'s own counts.' }
-  } catch (e) {
-    console.error('[admin] Vercel Analytics:', e)
-    return { note: `Couldn't reach Vercel Analytics (${(e as Error).message}), so these are Cucuflix's own counts.` }
-  }
-}
-
 // Viewer accounts live in Supabase Auth, not in Neon. Reading them needs the server-only service key.
 async function accountDates(): Promise<string[] | { note: string }> {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
   // Either a new-style secret key (sb_secret_…) or the legacy service_role JWT.
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return { note: 'Supabase is not connected for the dashboard (add SUPABASE_SECRET_KEY in Vercel), so sign-ups can\'t be counted yet.' }
+  if (!url || !key) return { note: 'Supabase is not connected for the dashboard (add SUPABASE_SECRET_KEY to the site environment), so sign-ups can\'t be counted yet.' }
   // Only the legacy key is a JWT; new secret keys go in the apikey header alone.
   const headers: Record<string, string> = key.startsWith('ey') ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key }
   const dates: string[] = []
@@ -146,38 +135,20 @@ const REPORTS: Record<string, (c: Ctx) => Promise<unknown>> = {
     return { total: rows.length, watching: rows.filter((x) => x.type === 'play_start').length, people: rows }
   },
 
-  async overview({ sql, r, now }) {
+  async overview({ sql, r }) {
     await migrateRedisReviews(sql)
-    const [current, previous, series, countries, topCities, reviews, vercel] = await Promise.all([
+    const [current, previous, series, countries, topCities, reviews] = await Promise.all([
       stats(sql, r),
       r.prev ? stats(sql, r.prev) : null,
       trend(sql, r),
       breakdown(sql, 'country', r, 6),
       cities(sql, r, 6),
       reviewList(sql, r, 3),
-      traffic(r, now),
     ])
-    if (!('current' in vercel)) {
-      return { current, previous, unit: r.unit, series, countries, cities: topCities, reviews, source: 'cucuflix', sourceNote: vercel.note }
-    }
-    // Visitors, page views, the trend and countries come from Vercel; plays, bounce rate and visit length are ours.
-    const plays = new Map(series.map((p) => [p.t as string, p.plays as number]))
-    return {
-      current: { ...current, ...vercel.current },
-      // Without Vercel's previous period, drop visitors/page views from the comparison rather than
-      // comparing Vercel's count against our own (they count differently, so the % would be wrong).
-      previous: previous && vercel.previous ? { ...previous, ...vercel.previous } : r.unit === 'hour' || !previous ? null : { ...previous, visitors: null, pageviews: null },
-      unit: r.unit,
-      series: vercel.series.map((p) => ({ ...p, plays: plays.get(p.t) ?? 0 })),
-      countries: vercel.countries.slice(0, 6),
-      cities: topCities,
-      reviews,
-      source: 'vercel',
-      coveredDays: vercel.coveredDays,
-    }
+    return { current, previous, unit: r.unit, series, countries, cities: topCities, reviews }
   },
 
-  async audience({ sql, r, now }) {
+  async audience({ sql, r }) {
     const [ownCountries, topCities, devices, browsers, systems, sources, campaigns, [split], [retention]] = await Promise.all([
       breakdown(sql, 'country', r),
       cities(sql, r),
@@ -210,9 +181,7 @@ const REPORTS: Record<string, (c: Ctx) => Promise<unknown>> = {
           count(*) FILTER (WHERE gap <= interval '30 days')::int AS day30
         FROM back`,
     ])
-    const vercel = await traffic(r, now)
-    const countries = 'current' in vercel ? vercel.countries : ownCountries
-    return { countries, cities: topCities, devices, browsers, systems, sources, campaigns, split, retention, source: 'current' in vercel ? 'vercel' : 'cucuflix', coveredDays: 'current' in vercel ? vercel.coveredDays : null }
+    return { countries: ownCountries, cities: topCities, devices, browsers, systems, sources, campaigns, split, retention }
   },
 
   async watching({ sql, r }) {
@@ -313,7 +282,7 @@ export async function GET(request: Request) {
   const report = REPORTS[url.searchParams.get('report') ?? '']
   if (!report) return error('Unknown report', 400)
   const sql = await db()
-  if (!sql) return error('Database is not connected. Add Neon from the Vercel Marketplace so DATABASE_URL is set.', 503)
+  if (!sql) return error('Database is not connected. Set DATABASE_URL in the site environment.', 503)
 
   const [meta] = await sql`
     SELECT date_trunc('day', now() AT TIME ZONE ${TZ}) AT TIME ZONE ${TZ} AS midnight, now() AS now,
@@ -322,7 +291,7 @@ export async function GET(request: Request) {
   const now = new Date(new Date(meta.now).getTime() + 1000)
   const r = resolveRange(url.searchParams.get('range') ?? '7d', now, new Date(meta.midnight), meta.first ? new Date(meta.first) : null)
 
-  const data = await report({ sql, r, url, now })
+  const data = await report({ sql, r, url })
   if (data === null) return error('Not found', 404)
   return json({ range: { from: r.from, to: r.to, unit: r.unit, tz: TZ }, data })
 }

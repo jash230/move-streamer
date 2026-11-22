@@ -1,4 +1,3 @@
-import { Analytics } from '@vercel/analytics/react'
 import { KeyRound } from 'lucide-react'
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
@@ -74,7 +73,6 @@ function Site() {
         <span>Cucuflix</span>
         <span className="muted">Cucuflix is a free website to watch movies online and watch TV shows online. Metadata by TMDB. Video is served by third-party players.</span>
       </footer>
-      <Analytics />
     </>
   )
 }

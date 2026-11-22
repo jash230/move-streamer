@@ -48,4 +48,4 @@ One entry per title, keyed `${type}-${id}`:
 ## Testing
 
 - vitest: the store (save, list order, cap, remove, finished rules) and `playbackProgress` on the captured message shapes.
-- `npm run build`, `npm test`, then a real-browser check on a Vercel preview before main is fast-forwarded.
+- `npm run build`, `npm test`, then a real-browser check on a Netlify Deploy Preview before main is fast-forwarded.

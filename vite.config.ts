@@ -4,8 +4,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { VIDROCK_KEY_HEX } from './src/vidrockKey.js'
 
-// Runs the Vercel functions in api/*.ts inside `npm run dev`, so /api works locally the way it does
-// on Vercel. Server-only variables from .env.local are exposed to them through process.env.
+// Runs the Web Request/Response API handlers in api/*.ts inside `npm run dev`, so /api works locally.
+// Server-only variables from .env.local are exposed to them through process.env.
 function devApi(): Plugin {
   return {
     name: 'dev-api',
@@ -15,7 +15,7 @@ function devApi(): Plugin {
       for (const [k, v] of Object.entries(env)) process.env[k] ??= v
 
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next) => {
-        // Mirrors the /docs rewrite in vercel.json.
+        // Mirrors the /docs rewrite in netlify.toml.
         if (/^\/docs\/?(?:\?|$)/.test(req.url ?? '')) req.url = '/api/docs?format=html'
         if ((req.url ?? '').split('?')[0] === '/api/dev/vidrock-decrypt') {
           if (req.method !== 'POST') {
@@ -72,6 +72,6 @@ function devApi(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), devApi()],
-  // NEXT_PUBLIC_ lets the Clerk publishable key keep the name Clerk and Vercel give it.
+  // NEXT_PUBLIC_ supports public keys that use the conventional prefix.
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
 })

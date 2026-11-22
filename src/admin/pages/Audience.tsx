@@ -42,7 +42,7 @@ export default function Audience() {
               </Section>
 
               <div className="columns">
-                <Section title="Countries" hint={d.source === 'vercel' ? `Counted by Vercel Analytics, matching your Vercel dashboard.${d.coveredDays ? ` Vercel only keeps ${d.coveredDays} days, so this list covers the last ${d.coveredDays} days, not the whole range.` : ''}` : undefined}><BarList items={bars(d.countries, (x) => (x.label ? country(x.label) : 'Other countries'))} /></Section>
+                <Section title="Countries"><BarList items={bars(d.countries, (x) => (x.label ? country(x.label) : 'Other countries'))} /></Section>
                 <Section title="Cities"><BarList items={d.cities.map((c) => ({ key: `${c.label}-${c.country}`, label: place(c.label, c.country), value: c.visitors }))} /></Section>
               </div>
 

@@ -13,7 +13,7 @@ const METRICS = [
   { key: 'plays', label: 'Plays' },
 ] as const
 
-// Bucket times are UTC (the day boundary Vercel Analytics uses), so label them in UTC too.
+// Bucket labels use UTC, matching the dashboard's default day boundary.
 function points<K extends string>(series: ({ t: string } & Record<K, number>)[], unit: 'hour' | 'day', metric: K) {
   return series.map((p) => {
     const d = new Date(`${p.t}:00Z`)
@@ -82,22 +82,19 @@ function SignupsCard({ unit }: { unit: 'hour' | 'day' }) {
 export default function Overview() {
   const state = useReport<Data>('overview')
   const [metric, setMetric] = useState<(typeof METRICS)[number]['key']>('visitors')
-  const fromVercel = 'Counted by Vercel Analytics, so it matches your Vercel dashboard. Days run midnight to midnight UTC.'
   return (
     <div className="bento">
       <LiveCard />
       <Loaded state={state} lines={6}>
         {(d) => (
           <div className="bento-rest">
-            {d.source !== 'vercel' && d.sourceNote && <p className="notice">{d.sourceNote}</p>}
-            {d.coveredDays && <p className="notice quiet">Vercel keeps {d.coveredDays} days of history on the Hobby plan, so visitors, page views and countries cover the last {d.coveredDays} days.</p>}
             <div className="kpis">
               <Kpi label="Visitors" value={num(d.current.visitors)} now={d.current.visitors} before={d.previous?.visitors}
                 spark={d.series.map((p) => p.visitors)}
-                info={<>Different people. {d.source === 'vercel' ? fromVercel + ' Vercel resets visitors daily, so someone who comes back on another day counts again.' : 'Counted once each.'}</>} />
+                info="Different browser IDs, counted once each in the selected period." />
               <Kpi label="Page views" value={num(d.current.pageviews)} now={d.current.pageviews} before={d.previous?.pageviews}
                 spark={d.series.map((p) => p.pageviews)}
-                info={<>Every page opened, including repeats. {d.source === 'vercel' ? fromVercel : ''}</>} />
+                info="Every page opened, including repeats." />
               <Kpi label="Plays" value={num(d.current.plays)} now={d.current.plays} before={d.previous?.plays}
                 spark={d.series.map((p) => p.plays)}
                 info="Times someone pressed play on a movie or episode." />
@@ -124,11 +121,11 @@ export default function Overview() {
             <SignupsCard unit={d.unit} />
 
             <div className="trio">
-              <Card title="Top countries" info={d.source === 'vercel' ? fromVercel : 'By number of people.'}
+              <Card title="Top countries" info="By number of people."
                 action={<Link className="panel-link" to={`/yardenos/audience${location.search}`}>More</Link>}>
                 <BarList items={d.countries.map((r) => ({ key: r.label ?? 'other', label: r.label ? country(r.label) : 'Other countries', value: r.visitors }))} />
               </Card>
-              <Card title="Top cities" info="From Cucuflix's own tracking; Vercel doesn't report cities.">
+              <Card title="Top cities" info="From Cucuflix's own tracking.">
                 <BarList items={d.cities.map((r) => ({ key: `${r.label}-${r.country}`, label: place(r.label, r.country), value: r.visitors }))} />
               </Card>
               <Card title="Latest reviews" action={<Link className="panel-link" to={`/yardenos/reviews${location.search}`}>All</Link>}>

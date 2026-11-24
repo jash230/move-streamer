@@ -1,0 +1,60 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/movies",
+      "destination": "/movies.html"
+    },
+    {
+      "source": "/tv",
+      "destination": "/tv.html"
+    },
+    {
+      "source": "/(israel|search|my-list)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/(movie|tv)/:id(\\d+)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/yardenos/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/docs",
+      "destination": "/api/docs?format=html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/search",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/yardenos/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

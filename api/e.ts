@@ -11,6 +11,8 @@ const header = (request: Request, name: string) => {
   if (!v) return null
   try { return decodeURIComponent(v) } catch { return v }
 }
+// Vercel sets x-vercel-ip-* itself; the Netlify adapter passes geo as x-site-*.
+const geo = (request: Request, site: string, vercel: string) => header(request, `x-vercel-ip-${vercel}`) ?? header(request, `x-site-${site}`)
 
 export async function POST(request: Request) {
   const ua = parseUA(request.headers.get('user-agent') ?? '')
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
     INSERT INTO sessions (id, visitor_id, started_at, last_seen, pageviews, engaged, entry_path,
       country, region, city, device, browser, os, referrer, utm_source, utm_medium, utm_campaign)
     VALUES (${batch.s}, ${batch.v}, ${new Date(s.first)}, ${new Date(s.last)}, ${s.pageviews}, ${s.engaged}, ${s.entryPath},
-      ${header(request, 'x-site-country')}, ${header(request, 'x-site-region')}, ${header(request, 'x-site-city')},
+      ${geo(request, 'country', 'country')}, ${geo(request, 'region', 'country-region')}, ${geo(request, 'city', 'city')},
       ${ua.device}, ${ua.browser}, ${ua.os}, ${referrerHost(batch.r, host)},
       ${batch.u?.source ?? null}, ${batch.u?.medium ?? null}, ${batch.u?.campaign ?? null})
     ON CONFLICT (id) DO UPDATE SET

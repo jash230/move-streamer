@@ -1,9 +1,10 @@
 // First-party tracker. Receives batched events from src/analytics.ts, adds location and device,
-// updates the visit (session) row and stores every event except heartbeats.
+// and queues the visit (session) update plus every event except heartbeats; see _lib/queue.ts.
 import { db } from './_lib/db.js'
 import { error } from './_lib/http.js'
 import { parseBatch, parseUA, referrerHost, summarize } from './_lib/ingest.js'
-import { clientIp, overLimit } from './_lib/redis.js'
+import { enqueue, flush, flushDue, write, type Row } from './_lib/queue.js'
+import { clientIp, overLimit, redis } from './_lib/redis.js'
 
 const MAX_BODY = 16_000
 const header = (request: Request, name: string) => {
@@ -26,30 +27,29 @@ export async function POST(request: Request) {
   if ('error' in batch) return error(batch.error, 400)
 
   if (await overLimit(`e:limit:${clientIp(request)}`, 400, 600)) return error('Slow down', 429)
-  const sql = await db()
-  if (!sql) return error('Database is not connected', 503)
 
   const s = summarize(batch.e)
   const host = request.headers.get('host') ?? new URL(request.url).host
-  await sql`
-    INSERT INTO sessions (id, visitor_id, started_at, last_seen, pageviews, engaged, entry_path,
-      country, region, city, device, browser, os, referrer, utm_source, utm_medium, utm_campaign)
-    VALUES (${batch.s}, ${batch.v}, ${new Date(s.first)}, ${new Date(s.last)}, ${s.pageviews}, ${s.engaged}, ${s.entryPath},
-      ${geo(request, 'country', 'country')}, ${geo(request, 'region', 'country-region')}, ${geo(request, 'city', 'city')},
-      ${ua.device}, ${ua.browser}, ${ua.os}, ${referrerHost(batch.r, host)},
-      ${batch.u?.source ?? null}, ${batch.u?.medium ?? null}, ${batch.u?.campaign ?? null})
-    ON CONFLICT (id) DO UPDATE SET
-      last_seen = GREATEST(sessions.last_seen, EXCLUDED.last_seen),
-      pageviews = sessions.pageviews + EXCLUDED.pageviews,
-      engaged = sessions.engaged OR EXCLUDED.engaged OR sessions.pageviews + EXCLUDED.pageviews > 1`
+  const row: Row = {
+    s: batch.s, v: batch.v, first: s.first, last: s.last, pageviews: s.pageviews, engaged: s.engaged, entryPath: s.entryPath,
+    country: geo(request, 'country', 'country'), region: geo(request, 'region', 'country-region'), city: geo(request, 'city', 'city'),
+    device: ua.device, browser: ua.browser, os: ua.os, referrer: referrerHost(batch.r, host),
+    utmSource: batch.u?.source ?? null, utmMedium: batch.u?.medium ?? null, utmCampaign: batch.u?.campaign ?? null,
+    events: batch.e.filter((e) => e.t !== 'heartbeat').map((e) => ({ at: e.at, type: e.t, path: e.p, props: e.d ?? {} })),
+  }
 
-  const events = batch.e.filter((e) => e.t !== 'heartbeat')
-  if (events.length) {
-    await sql`
-      INSERT INTO events (session_id, visitor_id, at, type, path, props)
-      SELECT ${batch.s}, ${batch.v}, x.at, x.type, x.path, x.props
-      FROM unnest(${events.map((e) => new Date(e.at).toISOString())}::timestamptz[], ${events.map((e) => e.t)}::text[],
-        ${events.map((e) => e.p)}::text[], ${events.map((e) => JSON.stringify(e.d ?? {}))}::jsonb[]) AS x(at, type, path, props)`
+  const r = redis()
+  if (!r) {
+    const sql = await db()
+    if (!sql) return error('Database is not connected', 503)
+    await write(sql, [row])
+    return new Response(null, { status: 204 })
+  }
+  await enqueue(r, row)
+  // Heartbeats never trigger a flush, so they cost two Redis commands and no Postgres time.
+  if (row.events.length && (await flushDue(r))) {
+    // The row is safe in Redis either way; a failed flush is retried on the next due request.
+    await db().then((sql) => sql && flush(r, sql)).catch((e) => console.error('Tracker flush failed:', e))
   }
   return new Response(null, { status: 204 })
 }

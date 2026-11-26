@@ -4,6 +4,7 @@ import { requireAdmin } from './_lib/auth.js'
 import { db, type Sql } from './_lib/db.js'
 import { error, json } from './_lib/http.js'
 import { resolveRange, type Range } from './_lib/range.js'
+import { flush } from './_lib/queue.js'
 import { redis } from './_lib/redis.js'
 
 // Day boundaries use UTC by default and can be changed with ADMIN_TZ.
@@ -130,7 +131,7 @@ const REPORTS: Record<string, (c: Ctx) => Promise<unknown>> = {
         WHERE session_id = s.id AND type IN ('page_view', 'title_view', 'play_start', 'play_finish')
         ORDER BY at DESC LIMIT 1
       ) e ON true
-      WHERE s.last_seen > now() - interval '2 minutes'
+      WHERE s.last_seen > now() - interval '5 minutes'
       ORDER BY s.last_seen DESC LIMIT 100`
     return { total: rows.length, watching: rows.filter((x) => x.type === 'play_start').length, people: rows }
   },
@@ -283,6 +284,8 @@ export async function GET(request: Request) {
   if (!report) return error('Unknown report', 400)
   const sql = await db()
   if (!sql) return error('Database is not connected. Set DATABASE_URL in the site environment.', 503)
+  const queue = redis()
+  if (queue) await flush(queue, sql) // so reports include the latest queued visits
 
   const [meta] = await sql`
     SELECT date_trunc('day', now() AT TIME ZONE ${TZ}) AT TIME ZONE ${TZ} AS midnight, now() AS now,

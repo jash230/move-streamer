@@ -211,6 +211,6 @@ describe('tracker + reports on real Postgres', () => {
     await pg.query(`INSERT INTO events (session_id, visitor_id, at, type, path) VALUES ('old', 'old', now() - interval '100 days', 'page_view', '/')`)
     expect((await cron(new Request('https://cucuflix.test/api/cron'))).status).toBe(401)
     const res = await cron(new Request('https://cucuflix.test/api/cron', { headers: { authorization: 'Bearer s3cret' } }))
-    expect(await res.json()).toEqual({ deletedEvents: 1 })
+    expect(await res.json()).toEqual({ flushed: 0, deletedEvents: 1 })
   })
 })

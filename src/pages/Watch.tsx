@@ -69,9 +69,6 @@ export default function Watch({ type }: { type: MediaType }) {
   useEffect(() => {
     if (playing && title) track('play_start', playProps)
   }, [playing, title, season, episode]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (ended && title) track('play_finish', playProps)
-  }, [ended]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The native player reports how far along it is; progress is saved every 10s, when the page is
   // hidden or left, and as the episode finishes. Up next arms once the episode has been seen playing.
@@ -83,6 +80,7 @@ export default function Watch({ type }: { type: MediaType }) {
     let last: Playback | undefined
     let savedAt = 0
     let finished = false
+    let reported = false
     const save = (p: Playback) => {
       const { item, next } = saveFor.current
       if (!item || finished) return
@@ -99,6 +97,12 @@ export default function Watch({ type }: { type: MediaType }) {
         setEnded(true)
       }
       if (!seenPlaying) return
+      // Reported at 90%, the same point Continue Watching counts as finished: most people close during the credits.
+      const { item } = saveFor.current
+      if (!reported && item && isFinished(p)) {
+        reported = true
+        track('play_finish', { id, mt: type, title: item.title, s: want.season, e: want.episode, server: 'vidrock' })
+      }
       last = p
       if (isFinished(p) || Date.now() - savedAt >= 10_000) {
         savedAt = Date.now()

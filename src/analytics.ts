@@ -6,7 +6,7 @@ type Props = Record<string, string | number | boolean | undefined>
 const VISITOR_KEY = 'cf.vid'
 const SESSION_KEY = 'cf.session'
 const SESSION_GAP = 30 * 60_000
-const HEARTBEAT = 30_000
+const HEARTBEAT = 120_000 // the admin's "live now" window is 5 minutes
 const FLUSH_DELAY = 2_000
 const ENDPOINT = '/api/e'
 

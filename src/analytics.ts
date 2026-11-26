@@ -1,3 +1,5 @@
+import posthog from 'posthog-js'
+
 // First-party analytics for the /yardenos dashboard. Events are queued and sent in small batches to
 // /api/e; nothing personal is collected — just a random visitor ID kept in this browser.
 type EventType = 'page_view' | 'title_view' | 'play_start' | 'play_finish' | 'server_switch' | 'search' | 'heartbeat'
@@ -69,8 +71,23 @@ function flush(beacon = false) {
   if (queue.length) flush(beacon)
 }
 
+// PostHog sees the same events (plus autocapture, pageviews and session replay); off without a key.
+const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined
+// At import, so a restored sign-in (auth.ts) can identify before React mounts.
+if (POSTHOG_KEY && enabled()) {
+  posthog.init(POSTHOG_KEY, {
+    api_host: '/ingest', // proxied by vercel.json so ad blockers don't drop it
+    ui_host: 'https://us.posthog.com',
+    defaults: '2026-08-30',
+    person_profiles: 'identified_only',
+    before_send: (e) => (location.pathname.startsWith('/yardenos') ? null : e), // keep the admin out
+  })
+}
+
 export function track(type: EventType, d?: Props) {
   if (!enabled()) return
+  // PostHog records its own pageviews and sessions, so only product events are forwarded.
+  if (POSTHOG_KEY && type !== 'page_view' && type !== 'heartbeat') posthog.capture(type, d)
   const now = Date.now()
   const { v, s, fresh } = ids(now)
   // A heartbeat that opens a new visit (tab back after 30+ idle minutes) counts as landing on this page.
@@ -84,6 +101,13 @@ export function track(type: EventType, d?: Props) {
 }
 
 let started = false
+
+// Ties PostHog's anonymous visitor to the signed-in account (and splits it again on sign-out).
+export function identify(userId: string | null) {
+  if (!POSTHOG_KEY || !enabled()) return
+  if (userId) posthog.identify(userId)
+  else posthog.reset() // follow() only passes null on a real sign-out
+}
 
 // Call once at startup: heartbeats while the tab is visible, and a final flush when it hides.
 export function startTracking() {

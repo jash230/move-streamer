@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { useSyncExternalStore } from 'react'
+import { identify } from './analytics'
 import { supabase } from './supabase'
 import { refresh, supabaseRemote, switchAccount, type Sync } from './sync'
 
@@ -47,6 +48,7 @@ function follow(userId: string | null) {
   switching = switching.then(async () => {
     if (userId === syncedUser) return
     syncedUser = userId
+    identify(userId)
     sync = await switchAccount(supabaseRemote(supabase!), sync, userId)
   })
 }

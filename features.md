@@ -24,12 +24,12 @@ The biggest reason people return to a streaming site.
 ## 2. Always something next
 
 - [ ] **"Because you watched X" rows** based on what's in Continue Watching
-- [ ] **More like this** on title pages (TMDB recommendations and similar titles)
+- [x] **More like this** on title pages (TMDB recommendations, falling back to similar titles)
 - [ ] **Trailers**: autoplay in the Hero, and on hover/long-press on cards
 - [ ] **Richer title pages**: cast, rating, runtime, 
-- [ ] **Genre and year filters** on Browse
-- [ ] **Top 10 today** row with large rank numbers
-- [ ] **"Surprise me"** button that picks a random well-rated title
+- [~] **Genre and year filters** on Browse: genre chips shipped (`?genre=` in the URL); year not yet
+- [x] **Top 10 this week** row with large rank numbers
+- [x] **"Surprise me"** button on Movies and TV that picks a random well-rated title (in the chosen genre)
 - [ ] **New episodes** badge on shows in your list or Continue Watching when a new episode is out
 
 
@@ -53,13 +53,13 @@ The biggest reason people return to a streaming site.
 ## 5. Accounts and sync
 
 - [ ] **Sync code**: a short code that brings your list and progress to another device, stored in Upstash Redis, no passwords
-- [ ] **Full accounts** (email or Google sign-in) if the sync code isn't enough
+- [x] **Full accounts**: email sign-in with Supabase sync
 - [ ] **Profiles**: separate lists for people sharing one device
 
 ## 6. Sharing and growth
 
 - [ ] **Share button** on title pages with a preview card (Open Graph image) for WhatsApp, X and others
-- [ ] **SEO page per title** so people searching for a show can find Cucuflix
+- [x] **SEO page per title** so people searching for a show can find Cucuflix
 - [ ] **Watch-funnel analytics**: track the steps home → title → play → finished to see where people drop off
 
 ---
@@ -71,7 +71,7 @@ The biggest reason people return to a streaming site.
 Unsorted ideas go here until we decide where they belong.
 
 ### 1. Better apis (no featured movies that get stuck)
-### 2. Find similar movies - user watches something and gets prompted similar content to what he watched (at the end of shows/movies) at the bottom of pages etc..
+### 2. ~~Find similar movies~~ (More like this row shipped; an end-of-movie prompt is still open) - user watches something and gets prompted similar content to what he watched (at the end of shows/movies) at the bottom of pages etc..
 ### 3. End the issue of redirect ads in the streamed videos.
 ### 4. Add live streaming of sports evens (football,soccer, basketball) 
 -

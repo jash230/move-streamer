@@ -197,6 +197,16 @@ main { position: relative; min-height: 70dvh; }
 .page > .page-title, .page > .page-sub, .page > .grid, .page > .error, .page > .empty { margin-left: var(--gutter); margin-right: var(--gutter); }
 .page-title { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-top: 0; margin-bottom: 8px; }
 .page-sub { color: var(--text-muted); max-width: 640px; margin-top: 0; margin-bottom: 16px; }
+.browse-tools { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 0 var(--gutter); margin-bottom: 16px; }
+.genre-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.genre-chip { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 0.875rem; font-weight: 500; transition: background var(--dur) var(--ease); }
+.genre-chip:hover { background: var(--surface-3); }
+.genre-chip[aria-pressed='true'] { background: var(--text); color: var(--bg); border-color: var(--text); }
+@media (max-width: 640px) {
+  /* One swipeable line on phones instead of five rows of chips. */
+  .genre-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: calc(100% + 2 * var(--gutter)); margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter); }
+  .genre-chip { flex: none; }
+}
 
 /* ---------- Card ---------- */
 .card { display: block; min-width: 0; border-radius: var(--radius); }
@@ -365,6 +375,8 @@ main { position: relative; min-height: 70dvh; }
 .overview { max-width: 70ch; margin: 16px 0 0; color: #d4d4d8; line-height: 1.65; }
 
 .episodes { margin-top: 40px; }
+/* Rows bring their own gutter, so the row cancels the page's. */
+.more-like { margin: 40px calc(-1 * var(--gutter)) 0; }
 .episodes-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .episodes h2 { margin: 0; font-size: 2.25rem; }
 .episodes select { min-height: 44px; padding: 0 36px 0 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a1a1aa' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 12px center no-repeat; appearance: none; font-weight: 500; }

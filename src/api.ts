@@ -186,6 +186,29 @@ export async function getDetails(type: MediaType, id: string): Promise<Details> 
   }
 }
 
+// TMDB's "people who watched this also watched", falling back to same-genre titles for niche ones.
+export async function getSimilar(type: MediaType, id: string) {
+  const pick = async (kind: string) => (await tmdb<Page>(`/${type}/${id}/${kind}`)).results.filter(streamable).map((r) => normalize(r, type))
+  const recs = await pick('recommendations')
+  return recs.length ? recs : pick('similar')
+}
+
+export const discover = async (type: MediaType, params: Record<string, string>) =>
+  (await tmdb<Page>(`/discover/${type}`, params)).results.filter(streamable).map((r) => normalize(r, type))
+
+export const getGenres = async (type: MediaType) =>
+  (await tmdb<{ genres: { id: number; name: string }[] }>(`/genre/${type}/list`)).genres.filter((g) => !UNSTREAMABLE_GENRES.has(g.id))
+
+// A random well-liked title, optionally from one genre.
+export async function surprise(type: MediaType, genre?: string) {
+  const params: Record<string, string> = { sort_by: 'popularity.desc', 'vote_average.gte': '7', 'vote_count.gte': '500', page: String(1 + Math.floor(Math.random() * 5)) }
+  if (genre) params.with_genres = genre
+  let found = await discover(type, params)
+  // Small genres may not have five pages of hits.
+  if (!found.length) found = await discover(type, { ...params, page: '1' })
+  return found[Math.floor(Math.random() * found.length)] as Media | undefined
+}
+
 export const getEpisodes = async (id: string, season: number) =>
   (await tmdb<{ episodes: Episode[] }>(`/tv/${id}/season/${season}`)).episodes
 

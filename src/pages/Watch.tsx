@@ -2,10 +2,11 @@ import { ArrowLeft, Check, Clock, Eye, Play, Plus, Star, TriangleAlert } from 'l
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
-import { getDetails, getEpisodes, img, type MediaType, type Playback, type Season } from '../api'
+import { getDetails, getEpisodes, getSimilar, img, type MediaType, type Playback, type Season } from '../api'
 import { toggleSaved, useSaved, useWatched, watchedKey } from '../library'
 import { formatTime, getProgress, isFinished, markWatched, MIN_WATCHED, recordPlayback } from '../progress'
 import NativePlayer from '../components/NativePlayer'
+import Row from '../components/Row'
 import Seo from '../components/Seo'
 import UpNext from '../components/UpNext'
 import { useAsync } from '../useAsync'
@@ -256,6 +257,10 @@ export default function Watch({ type }: { type: MediaType }) {
             onEpisode={(e) => { pickEpisode(season, e); setPlaying(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
           />
         )}
+
+        <div className="more-like">
+          <Row key={`${type}-${id}`} title="More like this" load={() => getSimilar(type, id)} />
+        </div>
       </div>
     </>
   )

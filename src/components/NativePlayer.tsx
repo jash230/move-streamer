@@ -48,8 +48,10 @@ export default function NativePlayer(props: {
   episode: number
   resumeAt?: number
   onPlayback: (p: Playback) => void
+  // Bound to N; absent when there's no next episode.
+  onNext?: () => void
 }) {
-  const { type, id, season, episode, resumeAt, onPlayback } = props
+  const { type, id, season, episode, resumeAt, onPlayback, onNext } = props
   const videoRef = useRef<HTMLVideoElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -329,7 +331,7 @@ export default function NativePlayer(props: {
       return
     }
     if (e.target !== e.currentTarget && (e.target as HTMLElement).closest('button, input, select')) return
-    const keys = [' ', 'ArrowLeft', 'ArrowRight', 'f', 'm']
+    const keys = [' ', 'ArrowLeft', 'ArrowRight', 'f', 'm', ...(onNext ? ['n'] : [])]
     if (!keys.includes(e.key)) return
     e.preventDefault()
     if (e.key === ' ') togglePlay()
@@ -337,6 +339,7 @@ export default function NativePlayer(props: {
     else if (e.key === 'ArrowRight') skip(10)
     else if (e.key === 'f') void toggleFullscreen()
     else if (e.key === 'm') toggleMute()
+    else if (e.key === 'n') onNext?.()
     poke()
   }
 

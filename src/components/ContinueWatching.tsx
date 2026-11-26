@@ -41,6 +41,7 @@ export default function ContinueWatching() {
             to={`/${p.type}/${p.id}?play=1`}
             sub={subtitle(p)}
             progress={p.duration ? p.position / p.duration : 0}
+            checkNew
             action={
               <button className="card-action" onClick={() => removeProgress(p.type, p.id)} aria-label={`Remove ${p.title} from Continue Watching`}>
                 <X size={16} aria-hidden="true" />

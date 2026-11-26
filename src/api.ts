@@ -223,14 +223,37 @@ export const discover = async (type: MediaType, params: Record<string, string>) 
 export const getGenres = async (type: MediaType) =>
   (await tmdb<{ genres: { id: number; name: string }[] }>(`/genre/${type}/list`)).genres.filter((g) => !UNSTREAMABLE_GENRES.has(g.id))
 
-// A random well-liked title, optionally from one genre.
-export async function surprise(type: MediaType, genre?: string) {
-  const params: Record<string, string> = { sort_by: 'popularity.desc', 'vote_average.gte': '7', 'vote_count.gte': '500', page: String(1 + Math.floor(Math.random() * 5)) }
-  if (genre) params.with_genres = genre
+// A random well-liked title, optionally narrowed by discover filters (genre, year).
+export async function surprise(type: MediaType, filter: Record<string, string> = {}) {
+  const params: Record<string, string> = { sort_by: 'popularity.desc', 'vote_average.gte': '7', 'vote_count.gte': '500', page: String(1 + Math.floor(Math.random() * 5)), ...filter }
   let found = await discover(type, params)
   // Small genres may not have five pages of hits.
   if (!found.length) found = await discover(type, { ...params, page: '1' })
   return found[Math.floor(Math.random() * found.length)] as Media | undefined
+}
+
+export interface LatestEpisode { season: number; episode: number; air_date: string }
+const latest = new Map<string, Promise<LatestEpisode | undefined>>()
+
+// The show's most recently aired episode, fetched once per page load: every show in your rows asks.
+export function getLatestEpisode(id: string) {
+  let hit = latest.get(id)
+  if (!hit) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    hit = tmdb<any>(`/tv/${id}`).then((r) => {
+      const ep = r.last_episode_to_air
+      return ep?.air_date ? { season: ep.season_number, episode: ep.episode_number, air_date: ep.air_date } : undefined
+    }).catch(() => { latest.delete(id); return undefined })
+    latest.set(id, hit)
+  }
+  return hit
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+// Aired within the last seven days (TMDB air dates are plain YYYY-MM-DD, read as UTC midnight).
+export const airedThisWeek = (airDate: string, now = Date.now()) => {
+  const age = now - Date.parse(airDate)
+  return age >= 0 && age < WEEK_MS
 }
 
 export const getEpisodes = async (id: string, season: number) =>

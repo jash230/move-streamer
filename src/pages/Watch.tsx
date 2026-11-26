@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Clock, Eye, Film, Play, Plus, Star, TriangleAlert, X } from 'lucide-react'
+import { ArrowLeft, Check, Clock, Eye, Film, Play, Plus, Share2, Star, TriangleAlert, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
@@ -193,6 +193,7 @@ export default function Watch({ type }: { type: MediaType }) {
               episode={episode}
               resumeAt={resumeAt}
               onPlayback={(p) => onPlaybackRef.current(p)}
+              onNext={next ? playNext : undefined}
             />
           ) : (
             <button className="play" onClick={() => setPlaying(true)}>
@@ -242,6 +243,7 @@ export default function Watch({ type }: { type: MediaType }) {
               <button className="btn btn-secondary" onClick={() => toggleSaved(item)} aria-pressed={inList}>
                 {inList ? <Check size={18} aria-hidden="true" /> : <Plus size={18} aria-hidden="true" />} My List
               </button>
+              <ShareButton title={item.title} path={`/${type}/${id}`} />
               {type === 'movie' && (
                 <button className="btn btn-secondary" onClick={() => markWatched(progressTitle, {}, !movieWatched)} aria-pressed={movieWatched}>
                   {movieWatched ? <Check size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />} {movieWatched ? 'Watched' : 'Mark as watched'}
@@ -293,6 +295,29 @@ function MovieUpNext({ id, onCancel }: { id: string; onCancel: () => void }) {
       onPlay={() => navigate(`/movie/${pick.id}?play=1`)}
       onCancel={onCancel}
     />
+  )
+}
+
+// The system share sheet where there is one (phones), else copy the link. /api/title gives the link its preview card.
+function ShareButton({ title, path }: { title: string; path: string }) {
+  const [copied, setCopied] = useState(false)
+  const share = async () => {
+    const url = `${window.location.origin}${path}`
+    if (navigator.share) {
+      try { await navigator.share({ title, url }) } catch { /* dismissed */ }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard blocked */ }
+  }
+  return (
+    <button className="btn btn-secondary" onClick={share}>
+      {copied ? <Check size={18} aria-hidden="true" /> : <Share2 size={18} aria-hidden="true" />}
+      <span aria-live="polite">{copied ? 'Link copied' : 'Share'}</span>
+    </button>
   )
 }
 

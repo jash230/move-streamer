@@ -27,10 +27,10 @@ The biggest reason people return to a streaming site.
 - [x] **More like this** on title pages (TMDB recommendations, falling back to similar titles)
 - [~] **Trailers**: a Trailer button on title pages (YouTube popup); Hero autoplay and card previews not yet
 - [x] **Richer title pages**: cast row, rating, runtime, genres
-- [~] **Genre and year filters** on Browse: genre chips shipped (`?genre=` in the URL); year not yet
+- [x] **Genre and year filters** on Browse: genre chips and a year picker, both in the URL (`?genre=`, `?year=`), and Surprise me respects them
 - [x] **Top 10 this week** row with large rank numbers
 - [x] **"Surprise me"** button on Movies and TV that picks a random well-rated title (in the chosen genre)
-- [ ] **New episodes** badge on shows in your list or Continue Watching when a new episode is out
+- [x] **New episodes** badge on shows in My List and Continue Watching when an episode aired in the last 7 days that you haven't watched
 
 
 ## 3. Playback that never gets stuck
@@ -38,14 +38,14 @@ The biggest reason people return to a streaming site.
 - [ ] **Auto-fallback**: if a server doesn't start within a few seconds, try the next one
 - [ ] **Server health**: remember which servers worked for each title and try those first
 - [ ] **Skip intro / skip recap** where the player supports it
-- [x] **Keyboard shortcuts**: space, ←/→ to skip 10s, F for fullscreen, M to mute (no N for next episode yet)
-- [ ] **Countdown to the next episode** with a cancel button (extend the current UpNext)
+- [x] **Keyboard shortcuts**: space, ←/→ to skip 10s, F for fullscreen, M to mute, N for next episode
+- [x] **Countdown to the next episode** with a cancel button (UpNext, with the Autoplay next episode switch)
 
 ## 4. Speed and polish
 
-- [ ] **Loading skeletons** instead of empty space while rows load
-- [ ] **Faster images**: responsive poster sizes, lazy loading, blur-up placeholders
-- [ ] **Installable app (PWA)**: add to home screen, opens full screen like an app
+- [x] **Loading skeletons** instead of empty space while rows load
+- [~] **Faster images**: lazy loading and fixed poster sizes shipped; responsive sizes and blur-up not yet
+- [x] **Installable app (PWA)**: web manifest and home-screen meta, opens full screen like an app (no offline mode)
 - [ ] **TV / remote friendly**: arrow-key navigation through rows
 - [ ] **Mobile polish**: swipeable rows, larger tap targets, bottom navigation
 - [ ] **Smooth page transitions**
@@ -58,7 +58,7 @@ The biggest reason people return to a streaming site.
 
 ## 6. Sharing and growth
 
-- [ ] **Share button** on title pages with a preview card (Open Graph image) for WhatsApp, X and others
+- [x] **Share button** on title pages: the share sheet on phones, copy link elsewhere; `/api/title` serves the preview card
 - [x] **SEO page per title** so people searching for a show can find Cucuflix
 - [ ] **Watch-funnel analytics**: track the steps home → title → play → finished to see where people drop off
 

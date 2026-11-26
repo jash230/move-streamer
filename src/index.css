@@ -198,6 +198,7 @@ main { position: relative; min-height: 70dvh; }
 .page-title { font-size: clamp(2.5rem, 5vw, 3.5rem); margin-top: 0; margin-bottom: 8px; }
 .page-sub { color: var(--text-muted); max-width: 640px; margin-top: 0; margin-bottom: 16px; }
 .browse-tools { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 0 var(--gutter); margin-bottom: 16px; }
+.browse-row { display: flex; flex-wrap: wrap; gap: 12px; }
 .genre-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .genre-chip { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 0.875rem; font-weight: 500; transition: background var(--dur) var(--ease); }
 .genre-chip:hover { background: var(--surface-3); }
@@ -226,6 +227,7 @@ main { position: relative; min-height: 70dvh; }
 .card-sub { display: flex; gap: 8px; font-size: 0.8rem; color: var(--text-muted); }
 
 /* Continue Watching */
+.poster-badge { position: absolute; left: 8px; bottom: 10px; padding: 3px 8px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 700; }
 .poster-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(255 255 255 / 0.3); }
 .poster-progress > span { display: block; height: 100%; background: var(--accent); }
 .card-wrap { position: relative; min-width: 0; }
@@ -393,7 +395,7 @@ main { position: relative; min-height: 70dvh; }
 .trailer-close:hover { background: rgb(255 255 255 / 0.22); }
 .episodes-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .episodes h2 { margin: 0; font-size: 2.25rem; }
-.episodes select { min-height: 44px; padding: 0 36px 0 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a1a1aa' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 12px center no-repeat; appearance: none; font-weight: 500; }
+.episodes select, .year-select { min-height: 44px; padding: 0 36px 0 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a1a1aa' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 12px center no-repeat; appearance: none; font-weight: 500; }
 .ep-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .ep { display: flex; gap: 16px; width: 100%; padding: 10px; text-align: left; border: 1px solid transparent; border-radius: var(--radius); background: var(--surface); transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease); }
 .ep:hover { background: var(--surface-2); }

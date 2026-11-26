@@ -34,7 +34,7 @@ export default function MyList() {
             </p>
           )}
           <div className="grid">
-            {saved.map((m) => <Card key={`${m.media_type}-${m.id}`} item={m} />)}
+            {saved.map((m) => <Card key={`${m.media_type}-${m.id}`} item={m} checkNew />)}
           </div>
         </>
       )}

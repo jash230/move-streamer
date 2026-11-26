@@ -23,10 +23,10 @@ The biggest reason people return to a streaming site.
 
 ## 2. Always something next
 
-- [ ] **"Because you watched X" rows** based on what's in Continue Watching
+- [x] **"Because you watched X" rows** on Home for the two most recent titles in Continue Watching
 - [x] **More like this** on title pages (TMDB recommendations, falling back to similar titles)
-- [ ] **Trailers**: autoplay in the Hero, and on hover/long-press on cards
-- [ ] **Richer title pages**: cast, rating, runtime, 
+- [~] **Trailers**: a Trailer button on title pages (YouTube popup); Hero autoplay and card previews not yet
+- [x] **Richer title pages**: cast row, rating, runtime, genres
 - [~] **Genre and year filters** on Browse: genre chips shipped (`?genre=` in the URL); year not yet
 - [x] **Top 10 this week** row with large rank numbers
 - [x] **"Surprise me"** button on Movies and TV that picks a random well-rated title (in the chosen genre)
@@ -38,7 +38,7 @@ The biggest reason people return to a streaming site.
 - [ ] **Auto-fallback**: if a server doesn't start within a few seconds, try the next one
 - [ ] **Server health**: remember which servers worked for each title and try those first
 - [ ] **Skip intro / skip recap** where the player supports it
-- [ ] **Keyboard shortcuts**: space, F for fullscreen, N for next episode
+- [x] **Keyboard shortcuts**: space, ←/→ to skip 10s, F for fullscreen, M to mute (no N for next episode yet)
 - [ ] **Countdown to the next episode** with a cancel button (extend the current UpNext)
 
 ## 4. Speed and polish
@@ -71,7 +71,7 @@ The biggest reason people return to a streaming site.
 Unsorted ideas go here until we decide where they belong.
 
 ### 1. Better apis (no featured movies that get stuck)
-### 2. ~~Find similar movies~~ (More like this row shipped; an end-of-movie prompt is still open) - user watches something and gets prompted similar content to what he watched (at the end of shows/movies) at the bottom of pages etc..
+### 2. ~~Find similar movies~~ (More like this row, and an "Up next" suggestion of a similar movie as one ends) - user watches something and gets prompted similar content to what he watched (at the end of shows/movies) at the bottom of pages etc..
 ### 3. End the issue of redirect ads in the streamed videos.
 ### 4. Add live streaming of sports evens (football,soccer, basketball) 
 -

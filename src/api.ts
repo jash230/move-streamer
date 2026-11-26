@@ -23,6 +23,28 @@ export interface Details extends Media {
   runtime?: number
   seasons?: Season[]
   imdb_id?: string
+  cast: CastMember[]
+  // YouTube video key of the best trailer, if TMDB has one.
+  trailer?: string
+}
+
+export interface CastMember {
+  id: number
+  name: string
+  character: string
+  profile_path: string | null
+}
+
+type Video = { key: string; site: string; type: string; official?: boolean }
+
+// Official trailers first, then any trailer, then a teaser; YouTube only since that's what embeds.
+export function pickTrailer(videos: Video[] = []) {
+  const yt = videos.filter((v) => v.site === 'YouTube')
+  return (
+    yt.find((v) => v.type === 'Trailer' && v.official) ??
+    yt.find((v) => v.type === 'Trailer') ??
+    yt.find((v) => v.type === 'Teaser')
+  )?.key
 }
 
 export interface Episode {
@@ -176,13 +198,15 @@ export function search(query: string) {
 
 export async function getDetails(type: MediaType, id: string): Promise<Details> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw = await tmdb<any>(`/${type}/${id}`, { append_to_response: 'external_ids' })
+  const raw = await tmdb<any>(`/${type}/${id}`, { append_to_response: 'external_ids,credits,videos' })
   return {
     ...normalize(raw, type),
     genres: raw.genres ?? [],
     runtime: raw.runtime,
     seasons: raw.seasons?.filter((s: Season) => s.season_number > 0 && s.episode_count > 0),
     imdb_id: raw.imdb_id ?? raw.external_ids?.imdb_id ?? undefined,
+    cast: (raw.credits?.cast ?? []).slice(0, 15).map((c: CastMember) => ({ id: c.id, name: c.name, character: c.character, profile_path: c.profile_path })),
+    trailer: pickTrailer(raw.videos?.results),
   }
 }
 

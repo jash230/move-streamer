@@ -1,13 +1,14 @@
 import { Play, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-// Shown over the player as an episode ends. With autoplay on it counts down `seconds`, otherwise it waits.
-export default function UpNext({ label, autoplay, seconds, onPlay, onCancel }: {
+// Shown over the player as an episode or movie ends. With autoplay on it counts down `seconds`, otherwise it waits.
+export default function UpNext({ label, autoplay, seconds, onPlay, onCancel, playLabel = 'Play next episode' }: {
   label: string
   autoplay: boolean
   seconds: number
   onPlay: () => void
   onCancel: () => void
+  playLabel?: string
 }) {
   const [left, setLeft] = useState(seconds)
 
@@ -32,9 +33,9 @@ export default function UpNext({ label, autoplay, seconds, onPlay, onCancel }: {
             </svg>
           )}
           <Play size={16} fill="currentColor" aria-hidden="true" />
-          {autoplay ? `Playing in ${left}s` : 'Play next episode'}
+          {autoplay ? `Playing in ${left}s` : playLabel}
         </button>
-        <button className="upnext-cancel" onClick={onCancel} aria-label="Cancel next episode">
+        <button className="upnext-cancel" onClick={onCancel} aria-label="Dismiss">
           <X size={18} aria-hidden="true" />
         </button>
       </div>

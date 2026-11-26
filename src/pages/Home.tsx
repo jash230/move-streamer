@@ -1,4 +1,5 @@
 import { getFamousTv, getList, getTrending } from '../api'
+import BecauseYouWatched from '../components/BecauseYouWatched'
 import ContinueWatching from '../components/ContinueWatching'
 import Hero from '../components/Hero'
 import MyListRow from '../components/MyListRow'
@@ -17,6 +18,7 @@ export default function Home() {
       <div className="rows">
         <ContinueWatching />
         <MyListRow />
+        <BecauseYouWatched />
         <Row title="Top 10 this week" load={getTrending} ranked />
         <Row title="Popular Movies" load={() => getList('/movie/popular', 'movie')} />
         <Row title="Popular TV Shows" load={() => getFamousTv('popularity.desc')} />

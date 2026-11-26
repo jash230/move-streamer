@@ -1,8 +1,8 @@
-import { ArrowLeft, Check, Clock, Eye, Play, Plus, Star, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, Check, Clock, Eye, Film, Play, Plus, Star, TriangleAlert, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { track } from '../analytics'
-import { getDetails, getEpisodes, getSimilar, img, type MediaType, type Playback, type Season } from '../api'
+import { getDetails, getEpisodes, getSimilar, img, type CastMember, type MediaType, type Playback, type Season } from '../api'
 import { toggleSaved, useSaved, useWatched, watchedKey } from '../library'
 import { formatTime, getProgress, isFinished, markWatched, MIN_WATCHED, recordPlayback } from '../progress'
 import NativePlayer from '../components/NativePlayer'
@@ -39,6 +39,7 @@ export default function Watch({ type }: { type: MediaType }) {
   const [episode, setEpisode] = useState(() => (type === 'tv' && getProgress(type, id)?.episode) || 1)
   const [playing, setPlaying] = useState(params.get('play') === '1')
   const [autoNext, setAutoNext] = useState(loadAutoNext)
+  const [trailerOpen, setTrailerOpen] = useState(false)
   // Up next shows this many seconds before the end, so the next episode starts as this one finishes.
   const [ended, setEnded] = useState(false)
   const [upNextIn, setUpNextIn] = useState(UP_NEXT_AT)
@@ -60,7 +61,8 @@ export default function Watch({ type }: { type: MediaType }) {
     return saved.position
   }, [type, id, season, episode, playing]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => setEnded(false), [season, episode])
+  // The page stays mounted when a suggestion opens another title, so that resets it too.
+  useEffect(() => setEnded(false), [id, season, episode])
 
   const title = item?.title
   const playProps = { id, mt: type, title, s: type === 'tv' ? season : undefined, e: type === 'tv' ? episode : undefined, server: 'vidrock' }
@@ -212,6 +214,7 @@ export default function Watch({ type }: { type: MediaType }) {
               onCancel={() => setEnded(false)}
             />
           )}
+          {ended && type === 'movie' && <MovieUpNext id={id} onCancel={() => setEnded(false)} />}
         </div>
 
         <div className="info">
@@ -231,6 +234,11 @@ export default function Watch({ type }: { type: MediaType }) {
             )}
             <p className="overview">{item.overview || 'No description available.'}</p>
             <div className="title-actions">
+              {item.trailer && (
+                <button className="btn btn-secondary" onClick={() => setTrailerOpen(true)}>
+                  <Film size={18} aria-hidden="true" /> Trailer
+                </button>
+              )}
               <button className="btn btn-secondary" onClick={() => toggleSaved(item)} aria-pressed={inList}>
                 {inList ? <Check size={18} aria-hidden="true" /> : <Plus size={18} aria-hidden="true" />} My List
               </button>
@@ -258,11 +266,71 @@ export default function Watch({ type }: { type: MediaType }) {
           />
         )}
 
+        {item.cast.length > 0 && <Cast cast={item.cast} />}
+
         <div className="more-like">
           <Row key={`${type}-${id}`} title="More like this" load={() => getSimilar(type, id)} />
         </div>
       </div>
+      {trailerOpen && item.trailer && <Trailer videoKey={item.trailer} title={item.title} onClose={() => setTrailerOpen(false)} />}
     </>
+  )
+}
+
+// After a movie, the first similar title you haven't started or watched. No autoplay: picking a film is a bigger choice than the next episode.
+function MovieUpNext({ id, onCancel }: { id: string; onCancel: () => void }) {
+  const navigate = useNavigate()
+  const watched = useWatched()
+  const { data } = useAsync(() => getSimilar('movie', id), [id])
+  const pick = data?.find((m) => !(watchedKey('movie', m.id) in watched) && !getProgress('movie', String(m.id)))
+  if (!pick) return null
+  return (
+    <UpNext
+      label={pick.date ? `${pick.title} (${pick.date.slice(0, 4)})` : pick.title}
+      autoplay={false}
+      seconds={0}
+      playLabel="Watch now"
+      onPlay={() => navigate(`/movie/${pick.id}?play=1`)}
+      onCancel={onCancel}
+    />
+  )
+}
+
+function Trailer({ videoKey, title, onClose }: { videoKey: string; title: string; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => { ref.current?.showModal() }, [])
+  return (
+    <dialog ref={ref} className="trailer" aria-label={`${title} trailer`} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
+      <button className="trailer-close" onClick={onClose} aria-label="Close trailer"><X size={22} aria-hidden="true" /></button>
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${videoKey}?autoplay=1&rel=0`}
+        title={`${title} trailer`}
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allowFullScreen
+      />
+    </dialog>
+  )
+}
+
+function Cast({ cast }: { cast: CastMember[] }) {
+  return (
+    <section className="cast" aria-labelledby="cast-title">
+      <h2 id="cast-title">Cast</h2>
+      <ul className="cast-list">
+        {cast.map((c, i) => {
+          const photo = img(c.profile_path, 'w185')
+          return (
+            <li key={`${c.id}-${i}`}>
+              {photo
+                ? <img src={photo} alt="" loading="lazy" width={88} height={88} />
+                : <span className="cast-initials" aria-hidden="true">{c.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span>}
+              <strong>{c.name}</strong>
+              {c.character && <span>{c.character}</span>}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 

@@ -1,4 +1,4 @@
-import { Bookmark, Clapperboard, Film, Home, Loader2, Search, Star, Tv } from 'lucide-react'
+import { Bookmark, Film, Home, Loader2, Search, Star, Tv } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { track } from '../analytics'
@@ -9,7 +9,6 @@ const LINKS = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/movies', label: 'Movies', icon: Film },
   { to: '/tv', label: 'TV Shows', icon: Tv },
-  { to: '/israel', label: 'Israeli TV', icon: Clapperboard },
   { to: '/my-list', label: 'My List', icon: Bookmark },
 ]
 

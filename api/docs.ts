@@ -11,7 +11,7 @@ export function spec(origin: string) {
       version: '1.0.0',
       summary: 'Public API behind cucuflix.online, a free site to watch movies and TV shows online.',
       description: [
-        'Cucuflix streams movies, TV shows and Israeli TV in the browser with no sign-up.',
+        'Cucuflix streams movies and TV shows in the browser with no sign-up.',
         'Every title has a page at `/movie/{tmdb_id}` or `/tv/{tmdb_id}`, keyed by its TMDB ID.',
         `A plain-language overview of the site is at ${SITE}/llms.txt.`,
       ].join(' '),

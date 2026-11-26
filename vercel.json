@@ -15,12 +15,16 @@
       "destination": "/tv.html"
     },
     {
-      "source": "/(israel|search|my-list)",
+      "source": "/(search|my-list)",
       "destination": "/index.html"
     },
     {
-      "source": "/(movie|tv)/:id(\\d+)",
-      "destination": "/index.html"
+      "source": "/:type(movie|tv)/:id(\\d+)",
+      "destination": "/api/title?type=:type&id=:id"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
     },
     {
       "source": "/yardenos/:path*",

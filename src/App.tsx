@@ -6,7 +6,6 @@ import { hasApiKey } from './api'
 import Navbar from './components/Navbar'
 import Browse from './pages/Browse'
 import Home from './pages/Home'
-import Israel from './pages/Israel'
 import MyList from './pages/MyList'
 import Search from './pages/Search'
 import Watch from './pages/Watch'
@@ -61,7 +60,6 @@ function Site() {
           <Route path="/" element={<Home />} />
           <Route path="/movies" element={<Browse type="movie" />} />
           <Route path="/tv" element={<Browse type="tv" />} />
-          <Route path="/israel" element={<Israel />} />
           <Route path="/search" element={<Search />} />
           <Route path="/my-list" element={<MyList />} />
           <Route path="/movie/:id" element={<Watch type="movie" />} />

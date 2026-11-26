@@ -23,17 +23,17 @@
   status = 200
 
 [[redirects]]
+  from = "/sitemap.xml"
+  to = "/api/sitemap"
+  status = 200
+
+[[redirects]]
   from = "/docs"
   to = "/api/docs?format=html"
   status = 200
 
 [[redirects]]
   from = "/"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/israel"
   to = "/index.html"
   status = 200
 
@@ -48,13 +48,13 @@
   status = 200
 
 [[redirects]]
-  from = "/movie/*"
-  to = "/index.html"
+  from = "/movie/:id"
+  to = "/api/title?type=movie&id=:id"
   status = 200
 
 [[redirects]]
-  from = "/tv/*"
-  to = "/index.html"
+  from = "/tv/:id"
+  to = "/api/title?type=tv&id=:id"
   status = 200
 
 [[redirects]]

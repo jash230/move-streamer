@@ -189,12 +189,6 @@ export async function getDetails(type: MediaType, id: string): Promise<Details> 
 export const getEpisodes = async (id: string, season: number) =>
   (await tmdb<{ episodes: Episode[] }>(`/tv/${id}/season/${season}`)).episodes
 
-// Titles produced in a given country (ISO 3166-1, e.g. IL for Israel).
-export const discoverByCountry = async (type: MediaType, country: string, sort = 'popularity.desc') =>
-  (await tmdb<Page>(`/discover/${type}`, { with_origin_country: country, sort_by: sort, 'vote_count.gte': '5' })).results.map(
-    (r) => normalize(r, type),
-  )
-
 // ISO 639-1 codes, as the players take them.
 export interface Server {
   id: string

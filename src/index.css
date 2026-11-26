@@ -162,6 +162,7 @@ main { position: relative; min-height: 70dvh; }
 .ambient img { position: absolute; inset: -10%; width: 120%; height: 120%; object-fit: cover; filter: blur(90px) saturate(1.5); opacity: 0; transition: opacity 1200ms var(--ease); }
 .ambient img.active { opacity: 0.42; }
 .hero h2 { font-size: clamp(3.5rem, 9vw, 7.5rem); line-height: 0.86; margin: 0 0 14px; text-shadow: 0 2px 24px rgb(0 0 0 / 0.5); }
+.hero h2.long { width: calc(100vw - 2 * var(--gutter)); max-width: 1400px; text-wrap: balance; }
 .hero-meta { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; font-weight: 600; }
 .star { color: var(--star); }
 .hero-overview { color: #e4e4e7; margin: 0 0 24px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
